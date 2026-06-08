@@ -1,6 +1,6 @@
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center p-8">
+    <main className="min-h-screen flex flex-col items-center p-8 max-w-4xl mx-auto">
 
   <h1 className="text-5xl font-bold mt-10">
     GTV
@@ -11,14 +11,17 @@ export default function Home() {
   </p>
 
   <div className="mt-8 flex gap-4">
-    <button className="bg-blue-600 text-white px-6 py-3 rounded">
-      Create Trip
-    </button>
+  <a
+    href="/create-trip"
+    className="bg-blue-600 text-white px-6 py-3 rounded"
+  >
+    Create Trip
+  </a>
 
-    <button className="border px-6 py-3 rounded">
-      View Demo
-    </button>
-  </div>
+  <button className="border px-6 py-3 rounded">
+    View Demo
+  </button>
+</div>
 
   <div className="mt-16 text-center">
     <h2 className="text-2xl font-semibold mb-4">
@@ -45,6 +48,16 @@ export default function Home() {
   <p>✓ Updates</p>
   <p>✓ Polls</p>
   <p>✓ QR Sharing</p>
+</div>
+
+<div className="mt-16 flex gap-6 text-sm text-gray-600">
+  <a href="#" className="hover:text-blue-600">Login</a>
+  <a href="#" className="hover:text-blue-600">Register</a>
+</div>
+
+<div className="mt-12 text-xs text-gray-500 text-center">
+  <p>Privacy Policy</p>
+  <p>Terms of Service</p>
 </div>
 
 </main>
