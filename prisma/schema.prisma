@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  trips     Trip[]
+}
+
+model Trip {
+  id            Int      @id @default(autoincrement())
+  tripName      String
+  tripType      String
+  startDate     DateTime
+  endDate       DateTime
+  travelerCount Int
+
+  status        String   @default("Draft")
+
+  createdAt     DateTime @default(now())
+
+  ownerId       Int
+  owner         User     @relation(fields: [ownerId], references: [id])
+}
