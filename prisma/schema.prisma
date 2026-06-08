@@ -8,11 +8,13 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password      String?
+  emailVerified DateTime?
+  createdAt     DateTime @default(now())
 
-  trips     Trip[]
+  trips         Trip[]
 }
 
 model Trip {
