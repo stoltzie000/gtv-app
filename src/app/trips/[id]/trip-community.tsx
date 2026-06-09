@@ -6,18 +6,44 @@ import { useState, type FormEvent } from "react";
 import { Notification } from "@/app/components/notification";
 
 type UpdateType = "GENERAL" | "TRAVEL" | "ITINERARY";
-type Update = { id: number; title: string; content: string; createdAt: string; updateType: UpdateType; travelSegmentId: number | null; itineraryItemId: number | null };
-type LinkedItem = { id: number; label: string };
+type UpdateKind = "INFORMATIONAL" | "SCHEDULE_CHANGE";
+type Update = { id: number; title: string; content: string; createdAt: string; updateType: UpdateType; updateKind: UpdateKind; travelSegmentId: number | null; itineraryItemId: number | null; originalDate: string | null; originalTime: string | null; newDate: string | null; newTime: string | null };
+type LinkedItem = { id: number; label: string; date: string | null; time: string | null };
 type Poll = { id: number; question: string; isClosed: boolean; options: Array<{ id: number; label: string; votes: number }>; totalVotes: number };
 
 function UpdateFields({ update, travelSegments, itineraryItems }: { update?: Update; travelSegments: LinkedItem[]; itineraryItems: LinkedItem[] }) {
   const [updateType, setUpdateType] = useState<UpdateType>(update?.updateType ?? "GENERAL");
+  const [updateKind, setUpdateKind] = useState<UpdateKind | "">(update?.updateKind ?? "");
+  const [linkedItemId, setLinkedItemId] = useState("");
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
+  if (update) return <>
+    <input name="updateType" type="hidden" value={update.updateType} />
+    {update.travelSegmentId && <input name="travelSegmentId" type="hidden" value={update.travelSegmentId} />}
+    {update.itineraryItemId && <input name="itineraryItemId" type="hidden" value={update.itineraryItemId} />}
+    <p className="text-sm font-medium">{update.updateType === "GENERAL" ? "General Update" : update.updateType === "TRAVEL" ? "Travel Update" : "Itinerary Update"}</p>
+    {update.updateType === "GENERAL"
+      ? <input name="updateKind" type="hidden" value="INFORMATIONAL" />
+      : <select className="border p-2" disabled={update.updateKind === "SCHEDULE_CHANGE"} name="updateKind" onChange={(event) => setUpdateKind(event.target.value as UpdateKind)} value={updateKind}><option value="INFORMATIONAL">Informational Update</option><option value="SCHEDULE_CHANGE">Schedule Change</option></select>}
+    {update.updateKind === "SCHEDULE_CHANGE" && <input name="updateKind" type="hidden" value="SCHEDULE_CHANGE" />}
+    {updateKind === "SCHEDULE_CHANGE" && <>
+      {update.originalDate || update.originalTime ? <p className="text-sm text-gray-600">Original schedule: {update.originalDate ?? "No date"}{update.originalTime ? ` at ${update.originalTime}` : ""}</p> : <p className="text-sm text-gray-600">The current item schedule will be saved as the original schedule.</p>}
+      <div className="grid gap-2 sm:grid-cols-2"><label className="grid gap-1 text-sm">New date<input className="border p-2" defaultValue={update.newDate ?? ""} name="newDate" type="date" /></label><label className="grid gap-1 text-sm">New time<input className="border p-2" defaultValue={update.newTime ?? ""} name="newTime" type="time" /></label></div>
+    </>}
+  </>;
+  const linkedItems = updateType === "TRAVEL" ? travelSegments : itineraryItems;
+  const linkedItem = linkedItems.find((item) => String(item.id) === linkedItemId);
+  const resultingDate = newDate || linkedItem?.date;
+  const resultingTime = newTime || linkedItem?.time;
   return <>
-    <select className="border p-2" defaultValue={update?.updateType ?? "GENERAL"} name="updateType" onChange={(event) => setUpdateType(event.target.value as UpdateType)}>
+    <select className="border p-2" defaultValue="GENERAL" name="updateType" onChange={(event) => { setUpdateType(event.target.value as UpdateType); setUpdateKind(""); setLinkedItemId(""); setNewDate(""); setNewTime(""); }}>
       <option value="GENERAL">General Update</option><option value="TRAVEL">Travel Update</option><option value="ITINERARY">Itinerary Update</option>
     </select>
-    {updateType === "TRAVEL" && <select className="border p-2" defaultValue={update?.travelSegmentId ?? ""} name="travelSegmentId" required><option disabled value="">Select affected travel segment</option>{travelSegments.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select>}
-    {updateType === "ITINERARY" && <select className="border p-2" defaultValue={update?.itineraryItemId ?? ""} name="itineraryItemId" required><option disabled value="">Select affected itinerary item</option>{itineraryItems.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select>}
+    {updateType === "TRAVEL" && <select className="border p-2" name="travelSegmentId" onChange={(event) => setLinkedItemId(event.target.value)} required value={linkedItemId}><option disabled value="">Select affected travel segment</option>{travelSegments.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select>}
+    {updateType === "ITINERARY" && <select className="border p-2" name="itineraryItemId" onChange={(event) => setLinkedItemId(event.target.value)} required value={linkedItemId}><option disabled value="">Select affected itinerary item</option>{itineraryItems.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select>}
+    {updateType !== "GENERAL" && <select className="border p-2" name="updateKind" onChange={(event) => setUpdateKind(event.target.value as UpdateKind)} required value={updateKind}><option disabled value="">Choose update type</option><option value="INFORMATIONAL">Informational Update</option><option value="SCHEDULE_CHANGE">Schedule Change</option></select>}
+    {updateType === "GENERAL" && <input name="updateKind" type="hidden" value="INFORMATIONAL" />}
+    {updateType !== "GENERAL" && updateKind === "SCHEDULE_CHANGE" && <div className="grid gap-2 sm:grid-cols-2"><label className="grid gap-1 text-sm">New date (optional)<input className="border p-2" name="newDate" onChange={(event) => setNewDate(event.target.value)} type="date" value={newDate} /></label><label className="grid gap-1 text-sm">New time (optional)<input className="border p-2" name="newTime" onChange={(event) => setNewTime(event.target.value)} type="time" value={newTime} /></label><p className="text-xs text-gray-600 sm:col-span-2">Enter at least one new schedule value.</p>{linkedItem && (newDate || newTime) && <div className="rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 sm:col-span-2"><p className="font-semibold">Resulting schedule</p><p>{resultingDate ?? "No date"}{resultingTime ? ` at ${resultingTime}` : ""}</p></div>}</div>}
   </>;
 }
 
@@ -47,8 +73,12 @@ export function TripUpdates({ tripId, updates, travelSegments, itineraryItems }:
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    if (form.get("updateKind") === "SCHEDULE_CHANGE" && !form.get("newDate") && !form.get("newTime")) {
+      setNotice({ type: "error", text: "Schedule Change requires a new date and/or new time." });
+      return;
+    }
     const saved = await request(updateId ? "PATCH" : "POST", {
-      action: "update", updateId, title: form.get("title"), content: form.get("content"), updateType: form.get("updateType"), travelSegmentId: form.get("travelSegmentId"), itineraryItemId: form.get("itineraryItemId"),
+      action: "update", updateId, title: form.get("title"), content: form.get("content"), updateType: form.get("updateType"), updateKind: form.get("updateKind"), travelSegmentId: form.get("travelSegmentId"), itineraryItemId: form.get("itineraryItemId"), newDate: form.get("newDate"), newTime: form.get("newTime"),
     }, "Update saved.");
     if (!updateId && saved && formElement.isConnected) formElement.reset();
   }

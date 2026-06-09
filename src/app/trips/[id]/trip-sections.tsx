@@ -42,6 +42,7 @@ export function TripSections(props: TripSectionsProps) {
   const [confirmingMediaDelete, setConfirmingMediaDelete] = useState("");
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
   const [confirmingItineraryPopulation, setConfirmingItineraryPopulation] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<Record<"documents" | "photos", string>>({ documents: "", photos: "" });
   const pending = Boolean(pendingAction);
   const endpoint = `/api/trips/${props.tripId}/sections`;
   const outboundSegments = props.segments.filter((segment) => segment.journey !== "RETURN");
@@ -120,6 +121,7 @@ export function TripSections(props: TripSectionsProps) {
       const data = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(data?.error ?? "Upload failed");
       if (form.isConnected) form.reset();
+      setSelectedFiles((current) => ({ ...current, [kind]: "" }));
       setNotice({ type: "success", text: kind === "documents" ? "Document uploaded successfully" : "Photo uploaded successfully" });
       router.refresh();
     } catch (uploadError) {
@@ -213,7 +215,22 @@ export function TripSections(props: TripSectionsProps) {
         return <section className={`${kind === "documents" ? "order-4" : "order-5"} border rounded-lg p-6`} id={kind} key={kind}>
           <header className="flex justify-between gap-4 mb-4"><h2 className="text-2xl font-bold capitalize">{kind}</h2><StatusBadge status={props.statuses[kind]} /></header>
           <form className="flex flex-wrap gap-3 mb-4" onSubmit={(event) => submitForm(event, "sectionStatus")}><input name="section" type="hidden" value={kind} /><StatusSelect name="status" value={props.statuses[kind]} /><button className="border px-4 rounded" disabled={pending}>Update Status</button></form>
-          <form className="flex flex-wrap gap-3 mb-5" onSubmit={(event) => upload(event, kind)}><input accept={kind === "documents" ? "application/pdf" : "image/jpeg,image/png,image/webp,image/gif"} name="file" required type="file" /><button className="bg-blue-600 text-white px-4 py-2 rounded" disabled={pending}>{pendingAction === `upload-${kind}` ? "Uploading..." : "Upload"}</button></form>
+          <form className="flex flex-wrap items-start gap-3 mb-5" onSubmit={(event) => upload(event, kind)}>
+            <div>
+              <input
+                accept={kind === "documents" ? "application/pdf" : "image/jpeg,image/png,image/webp,image/gif"}
+                className="peer sr-only"
+                id={`${kind}-file`}
+                name="file"
+                onChange={(event) => setSelectedFiles((current) => ({ ...current, [kind]: event.target.files?.[0]?.name ?? "" }))}
+                required
+                type="file"
+              />
+              <label className="inline-block cursor-pointer rounded border px-4 py-2 font-medium peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-600" htmlFor={`${kind}-file`}>Select File</label>
+              <p aria-live="polite" className="mt-2 max-w-xs break-all text-sm text-gray-600">{selectedFiles[kind] || "No file selected"}</p>
+            </div>
+            <button className="bg-blue-600 text-white px-4 py-2 rounded" disabled={pending}>{pendingAction === `upload-${kind}` ? "Uploading..." : "Upload"}</button>
+          </form>
           <div className={kind === "photos" ? "grid grid-cols-2 sm:grid-cols-3 gap-4" : "grid gap-2"}>{media.map((file) => <div className="border rounded p-3" key={file.id}>
             {kind === "photos" && <Image alt={file.name} className="w-full h-32 object-cover rounded mb-2" height={128} src={`/api/trips/${props.tripId}/media/photos/${file.id}`} unoptimized width={200} />}
             <a className="text-blue-700 break-all" href={`/api/trips/${props.tripId}/media/${kind}/${file.id}`}>{file.name}</a><p className="text-xs text-gray-500">{Math.ceil(file.size / 1024)} KB</p><button className="text-red-600 text-sm mt-2" disabled={pending} onClick={() => setConfirmingMediaDelete(`${kind}-${file.id}`)} type="button">Delete</button>

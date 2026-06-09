@@ -18,7 +18,7 @@ type TravelerTrip = {
   travelSegments: Array<{ id: number; type: string; title: string; description: string; journey: string; date: Date | null; time: string | null; startLocation: string; destination: string }>;
   documents: Array<{ id: number; name: string; size: number }>;
   photos: Array<{ id: number; name: string; size: number }>;
-  updates: Array<{ id: number; title: string; content: string; createdAt: Date; updatedAt: Date; updateType: string; travelSegmentId: number | null; sourceTravelSegmentId: number | null; itineraryItemId: number | null }>;
+  updates: Array<{ id: number; title: string; content: string; createdAt: Date; updatedAt: Date; updateType: string; updateKind: string; travelSegmentId: number | null; sourceTravelSegmentId: number | null; itineraryItemId: number | null; originalDate: Date | null; originalTime: string | null; newDate: Date | null; newTime: string | null }>;
   polls: Array<{
     id: number;
     question: string;
@@ -50,11 +50,11 @@ export function TravelerTripView({ trip, publicToken, readOnly, initialNow }: { 
     if (update.updateType === "GENERAL") return { ...update, expiresAt: null };
     if (update.updateType === "ITINERARY") {
       const item = trip.itineraryItems.find((candidate) => candidate.id === update.itineraryItemId);
-      return { ...update, expiresAt: expirationAt(item?.date, item?.time) };
+      return { ...update, expiresAt: expirationAt(item?.date ?? update.newDate, item?.time ?? update.newTime) };
     }
     const segment = trip.travelSegments.find((candidate) => candidate.id === update.sourceTravelSegmentId);
     const generatedItem = trip.itineraryItems.find((candidate) => candidate.sourceTravelSegmentId === update.sourceTravelSegmentId);
-    return { ...update, expiresAt: expirationAt(segment?.date ?? generatedItem?.date, segment?.time ?? generatedItem?.time) };
+    return { ...update, expiresAt: expirationAt(segment?.date ?? generatedItem?.date ?? update.newDate, segment?.time ?? generatedItem?.time ?? update.newTime) };
   });
   const travelUpdates = (id: number) => updates.filter((update) => update.updateType === "TRAVEL"
     && update.sourceTravelSegmentId !== null
