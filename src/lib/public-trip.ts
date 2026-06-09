@@ -5,7 +5,7 @@ export async function getPublishedTrip(token: string) {
     where: { shareToken: token, isPublished: true },
     include: {
       itineraryItems: { orderBy: [{ date: "asc" }, { time: "asc" }] },
-      travelSegments: { orderBy: { createdAt: "asc" } },
+      travelSegments: { orderBy: [{ journey: "asc" }, { position: "asc" }, { id: "asc" }] },
       documents: { select: { id: true, name: true, size: true } },
       photos: { select: { id: true, name: true, size: true } },
       updates: { orderBy: { createdAt: "desc" } },

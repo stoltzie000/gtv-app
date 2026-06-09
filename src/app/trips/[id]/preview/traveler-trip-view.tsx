@@ -12,8 +12,9 @@ type TravelerTrip = {
   notes: string;
   destination: string;
   startLocation: string;
+  tripDirection: string | null;
   itineraryItems: Array<{ id: number; date: Date; time: string; title: string; description: string }>;
-  travelSegments: Array<{ id: number; type: string; title: string; description: string }>;
+  travelSegments: Array<{ id: number; type: string; title: string; description: string; journey: string; date: Date | null; time: string | null; startLocation: string; destination: string }>;
   documents: Array<{ id: number; name: string; size: number }>;
   photos: Array<{ id: number; name: string; size: number }>;
   updates: Array<{ id: number; title: string; content: string; createdAt: Date; updatedAt: Date }>;
@@ -36,6 +37,11 @@ export function TravelerTripView({ trip, publicToken, readOnly }: { trip: Travel
   const mediaBase = readOnly
     ? `/api/trips/${trip.id}/media`
     : `/api/public/${publicToken}/media`;
+  const outboundSegments = trip.travelSegments.filter((segment) => segment.journey !== "RETURN");
+  const returnSegments = trip.travelSegments.filter((segment) => segment.journey === "RETURN");
+  const renderSegments = (segments: TravelerTrip["travelSegments"]) => segments.length
+    ? <div className="grid gap-3">{segments.map((segment) => <div className="border rounded p-4" key={segment.id}><p className="text-sm uppercase text-gray-500">{segment.type}</p><h3 className="font-semibold">{segment.title}</h3>{(segment.date || segment.time) && <p className="text-sm text-gray-600">{segment.date ? dateFormatter.format(segment.date) : ""}{segment.date && segment.time ? " at " : ""}{segment.time ?? ""}</p>}{(segment.startLocation || segment.destination) && <p>{segment.startLocation || "Start"} to {segment.destination || "Destination"}</p>}{segment.description && <p>{segment.description}</p>}</div>)}</div>
+    : <p>No travel segments yet.</p>;
 
   return (
     <article className="grid gap-8">
@@ -51,13 +57,14 @@ export function TravelerTripView({ trip, publicToken, readOnly }: { trip: Travel
         </div>
       </section>
 
-      <section className="bg-white border rounded-lg p-8"><h2 className="text-2xl font-bold mb-4">Itinerary</h2>
-        {trip.itineraryItems.length ? <div className="grid gap-4">{trip.itineraryItems.map((item) => <div className="border-l-4 border-blue-600 pl-4" key={item.id}><p className="font-semibold">{dateFormatter.format(item.date)} at {item.time}</p><h3 className="text-lg font-semibold">{item.title}</h3>{item.description && <p className="whitespace-pre-wrap">{item.description}</p>}</div>)}</div> : <p>No itinerary items yet.</p>}
-      </section>
-
       <section className="bg-white border rounded-lg p-8"><h2 className="text-2xl font-bold mb-4">Travel</h2>
         {(trip.startLocation || trip.destination) && <p className="mb-4">{trip.startLocation || "Start"} to {trip.destination || "Destination"}</p>}
-        {trip.travelSegments.length ? <div className="grid gap-3">{trip.travelSegments.map((segment) => <div className="border rounded p-4" key={segment.id}><p className="text-sm uppercase text-gray-500">{segment.type}</p><h3 className="font-semibold">{segment.title}</h3>{segment.description && <p>{segment.description}</p>}</div>)}</div> : <p>No travel segments yet.</p>}
+        <h3 className="text-lg font-semibold mb-3">Outbound Journey</h3>{renderSegments(outboundSegments)}
+        {trip.tripDirection === "ROUND_TRIP" && <div className="mt-6"><h3 className="text-lg font-semibold mb-3">Return Journey</h3>{renderSegments(returnSegments)}</div>}
+      </section>
+
+      <section className="bg-white border rounded-lg p-8"><h2 className="text-2xl font-bold mb-4">Itinerary</h2>
+        {trip.itineraryItems.length ? <div className="grid gap-4">{trip.itineraryItems.map((item) => <div className="border-l-4 border-blue-600 pl-4" key={item.id}><p className="font-semibold">{dateFormatter.format(item.date)} at {item.time}</p><h3 className="text-lg font-semibold">{item.title}</h3>{item.description && <p className="whitespace-pre-wrap">{item.description}</p>}</div>)}</div> : <p>No itinerary items yet.</p>}
       </section>
 
       <section className="bg-white border rounded-lg p-8"><h2 className="text-2xl font-bold mb-4">Documents</h2>

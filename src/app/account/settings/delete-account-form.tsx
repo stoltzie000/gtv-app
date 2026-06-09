@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Notification } from "@/app/components/notification";
 
 export function DeleteAccountForm() {
   const router = useRouter();
@@ -11,8 +12,6 @@ export function DeleteAccountForm() {
 
   async function deleteAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!window.confirm("Permanently delete your account and every trip?")) return;
-
     setPending(true);
     setError("");
     const response = await fetch("/api/account", {
@@ -47,7 +46,7 @@ export function DeleteAccountForm() {
         required
         value={confirmation}
       />
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && <Notification className="mb-4" message={error} type="error" />}
       <button
         className="bg-red-600 text-white px-5 py-2 rounded disabled:opacity-60"
         disabled={pending || confirmation !== "DELETE"}

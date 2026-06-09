@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { StatusBadge } from "@/app/components/status-badge";
 import type { TripStatus } from "@/lib/trips";
+import { Notification } from "@/app/components/notification";
 
 type Trip = {
   id: number;
@@ -69,7 +70,7 @@ export function TripList() {
   }
 
   if (error) {
-    return <p className="text-red-600 mt-8">{error}</p>;
+    return <Notification className="mt-8" message={error} type="error" />;
   }
 
   if (trips.length === 0) {
@@ -106,7 +107,7 @@ export function TripList() {
             </p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4 text-xs">
-            {[["Overview", trip.overviewStatus], ["Itinerary", trip.itineraryStatus], ["Travel", trip.travelStatus], ["Documents", trip.documentsStatus], ["Photos", trip.photosStatus]].map(([label, status]) => <div key={label}><p className="mb-1">{label}</p><StatusBadge status={status} /></div>)}
+            {[["Overview", trip.overviewStatus], ["Travel", trip.travelStatus], ["Itinerary", trip.itineraryStatus], ["Documents", trip.documentsStatus], ["Photos", trip.photosStatus]].map(([label, status]) => <div key={label}><p className="mb-1">{label}</p><StatusBadge status={status} /></div>)}
           </div>
         </li>
       ))}

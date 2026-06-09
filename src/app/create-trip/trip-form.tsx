@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Notification } from "@/app/components/notification";
 
 const tripTypes = [
   "Cruise",
@@ -39,7 +40,7 @@ export function TripForm() {
       });
 
       if (response.ok) {
-        router.push("/dashboard");
+        router.push("/dashboard?notice=trip-created");
         router.refresh();
         return;
       }
@@ -122,7 +123,7 @@ export function TripForm() {
         required
       />
 
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && <Notification className="mb-4" message={error} type="error" />}
 
       <button
         className="bg-blue-600 text-white px-6 py-3 rounded disabled:opacity-60"

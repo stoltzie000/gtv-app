@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Notification } from "@/app/components/notification";
 
 type TripActionsProps = {
   id: number;
@@ -13,11 +14,12 @@ type TripActionsProps = {
 export function TripActions({ id, tripName, isPublished }: TripActionsProps) {
   const router = useRouter();
   const [published, setPublished] = useState(isPublished);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function handlePublicationChange() {
-    setError("");
+    setMessage(null);
     setPending(true);
 
     try {
@@ -35,24 +37,17 @@ export function TripActions({ id, tripName, isPublished }: TripActionsProps) {
       }
 
       setPublished(!published);
+      setMessage({ type: "success", text: published ? "Trip unpublished successfully" : "Trip published successfully" });
       router.refresh();
     } catch (updateError) {
-      setError(
-        updateError instanceof Error
-          ? updateError.message
-          : "Unable to update publication state"
-      );
+      setMessage({ type: "error", text: updateError instanceof Error ? updateError.message : "Unable to update publication state" });
     } finally {
       setPending(false);
     }
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete "${tripName}"? This cannot be undone.`)) {
-      return;
-    }
-
-    setError("");
+    setMessage(null);
     setPending(true);
 
     try {
@@ -65,19 +60,17 @@ export function TripActions({ id, tripName, isPublished }: TripActionsProps) {
         throw new Error(data?.error ?? "Unable to delete trip");
       }
 
-      router.push("/dashboard");
+      router.push("/dashboard?notice=trip-deleted");
       router.refresh();
     } catch (deleteError) {
-      setError(
-        deleteError instanceof Error ? deleteError.message : "Unable to delete trip"
-      );
+      setMessage({ type: "error", text: deleteError instanceof Error ? deleteError.message : "Unable to delete trip" });
       setPending(false);
     }
   }
 
   return (
     <div className="mt-8">
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {message && <Notification className="mb-4" message={message.text} type={message.type} />}
       <div className="flex flex-wrap gap-3">
         <Link
           className="bg-blue-600 text-white px-5 py-2 rounded"
@@ -99,12 +92,23 @@ export function TripActions({ id, tripName, isPublished }: TripActionsProps) {
         <button
           className="bg-red-600 text-white px-5 py-2 rounded disabled:opacity-60"
           disabled={pending}
-          onClick={handleDelete}
+          onClick={() => setConfirmingDelete(true)}
           type="button"
         >
           Delete Trip
         </button>
       </div>
+      {confirmingDelete && (
+        <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900">
+          <p className="mb-3">Delete &quot;{tripName}&quot;? This cannot be undone.</p>
+          <div className="flex gap-3">
+            <button className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-60" disabled={pending} onClick={handleDelete} type="button">
+              {pending ? "Deleting..." : "Confirm Delete"}
+            </button>
+            <button className="border px-4 py-2 rounded" disabled={pending} onClick={() => setConfirmingDelete(false)} type="button">Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

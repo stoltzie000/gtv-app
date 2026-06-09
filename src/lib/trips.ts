@@ -46,6 +46,15 @@ export const TRAVEL_SEGMENT_TYPES = [
   "Custom",
 ] as const;
 
+export const TRIP_DIRECTIONS = ["ONE_WAY", "ROUND_TRIP"] as const;
+export type TripDirection = (typeof TRIP_DIRECTIONS)[number];
+
+export function parseTripDirection(value: unknown): TripDirection | null {
+  return typeof value === "string" && TRIP_DIRECTIONS.includes(value as TripDirection)
+    ? value as TripDirection
+    : null;
+}
+
 export function parseText(value: unknown, required = false) {
   const text = typeof value === "string" ? value.trim() : "";
   return required && !text ? null : text;

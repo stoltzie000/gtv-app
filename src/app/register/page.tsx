@@ -1,33 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { Notification } from "@/app/components/notification";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pending, setPending] = useState(false);
 
   async function handleRegister() {
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setNotice({ type: "error", text: "Passwords do not match" });
       return;
     }
-
-    const response = await fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    });
-
-    const data = await response.json();
-
-    console.log(data);
-    alert("Account created");
+    setNotice(null);
+    setPending(true);
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) throw new Error(data?.error ?? "Unable to create account");
+      setNotice({ type: "success", text: "Account created successfully" });
+    } catch (registerError) {
+      setNotice({ type: "error", text: registerError instanceof Error ? registerError.message : "Unable to create account" });
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -65,10 +68,12 @@ export default function RegisterPage() {
 
       <button
         onClick={handleRegister}
-        className="bg-blue-600 text-white px-6 py-3 rounded"
+        className="bg-blue-600 text-white px-6 py-3 rounded disabled:opacity-60"
+        disabled={pending}
       >
-        Create Account
+        {pending ? "Creating..." : "Create Account"}
       </button>
+      {notice && <Notification className="mt-4" message={notice.text} type={notice.type} />}
     </main>
   );
 }
