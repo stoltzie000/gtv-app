@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { StatusBadge } from "@/app/components/status-badge";
 import { Notification } from "@/app/components/notification";
 import { TRAVEL_SEGMENT_TYPES, TRIP_STATUSES } from "@/lib/trips";
@@ -23,6 +23,8 @@ type TripSectionsProps = {
   segments: Item[];
   documents: Media[];
   photos: Media[];
+  updatesSection: ReactNode;
+  pollsSection: ReactNode;
 };
 
 function StatusSelect({ name, value }: { name: string; value: string }) {
@@ -76,7 +78,7 @@ export function TripSections(props: TripSectionsProps) {
     await jsonRequest(
       method,
       { action, ...fields(event.currentTarget) },
-      successMessage ?? (action === "sectionStatus" ? "Section status updated successfully" : "Changes saved successfully")
+      successMessage ?? (action === "sectionStatus" ? "Section status updated successfully" : "Saved.")
     );
   }
 
@@ -135,7 +137,7 @@ export function TripSections(props: TripSectionsProps) {
     try {
       const response = await fetch(`/api/trips/${props.tripId}/media/${kind}/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`Unable to delete ${kind === "documents" ? "document" : "photo"}`);
-      setNotice({ type: "success", text: `${kind === "documents" ? "Document" : "Photo"} deleted successfully` });
+      setNotice({ type: "success", text: `${kind === "documents" ? "Document" : "Photo"} deleted.` });
       setConfirmingMediaDelete("");
       router.refresh();
     } catch (deleteError) {
@@ -149,9 +151,9 @@ export function TripSections(props: TripSectionsProps) {
     <div className="mt-10 grid gap-8">
       {notice && <Notification message={notice.text} type={notice.type} />}
 
-      <section className="order-0 border rounded-lg p-6">
+      <section className="order-0 border rounded-lg p-6" id="overview">
         <header className="flex justify-between gap-4 mb-4"><h2 className="text-2xl font-bold">Overview</h2><StatusBadge status={props.statuses.overview} /></header>
-        <form className="grid gap-4" onSubmit={(event) => submitForm(event, "overview")}>
+        <form className="grid gap-4" onSubmit={(event) => submitForm(event, "overview", "PATCH", "Overview saved.")}>
           <input className="border p-2 rounded" defaultValue={props.destination} name="destination" placeholder="Destination" />
           <textarea className="border p-2 rounded" defaultValue={props.description} name="description" placeholder="Description" rows={4} />
           <textarea className="border p-2 rounded" defaultValue={props.notes} name="notes" placeholder="Notes" rows={3} />
@@ -159,12 +161,14 @@ export function TripSections(props: TripSectionsProps) {
         </form>
       </section>
 
-      <section className="order-2 border rounded-lg p-6">
+      <div className="order-1" id="updates">{props.updatesSection}</div>
+
+      <section className="order-3 border rounded-lg p-6" id="itinerary">
         <header className="flex justify-between gap-4 mb-4"><h2 className="text-2xl font-bold">Itinerary</h2><StatusBadge status={props.statuses.itinerary} /></header>
         <form className="flex gap-3 mb-5" onSubmit={(event) => submitForm(event, "sectionStatus")}>
           <input name="section" type="hidden" value="itinerary" /><StatusSelect name="status" value={props.statuses.itinerary} /><button className="border px-4 rounded" disabled={pending}>Update Status</button>
         </form>
-        <form className="grid sm:grid-cols-2 gap-3 mb-6" onSubmit={(event) => submitForm(event, "itinerary", "POST")}>
+        <form className="grid sm:grid-cols-2 gap-3 mb-6" onSubmit={(event) => submitForm(event, "itinerary", "POST", "Itinerary item saved.")}>
           <input className="border p-2" name="date" required type="date" /><input className="border p-2" name="time" required type="time" />
           <input className="border p-2 sm:col-span-2" name="title" placeholder="Title" required /><textarea className="border p-2 sm:col-span-2" name="description" placeholder="Description" />
           <button className="bg-blue-600 text-white px-4 py-2 rounded w-fit" disabled={pending}>Add Item</button>
@@ -178,9 +182,9 @@ export function TripSections(props: TripSectionsProps) {
         ))}</div>
       </section>
 
-      <section className="order-1 border rounded-lg p-6">
+      <section className="order-2 border rounded-lg p-6" id="travel">
         <header className="flex justify-between gap-4 mb-4"><h2 className="text-2xl font-bold">Travel</h2><StatusBadge status={props.statuses.travel} /></header>
-        <form className="grid sm:grid-cols-2 gap-3 mb-6" onSubmit={(event) => submitForm(event, "travel")}>
+        <form className="grid sm:grid-cols-2 gap-3 mb-6" onSubmit={(event) => submitForm(event, "travel", "PATCH", "Travel saved.")}>
           <input className="border p-2" defaultValue={props.startLocation} name="startLocation" placeholder="Start location" /><input className="border p-2" defaultValue={props.destination} name="destination" placeholder="Destination" />
           <label className="grid gap-1"><span className="text-sm font-medium">Trip Direction</span><select className="border p-2" defaultValue={props.tripDirection ?? ""} name="tripDirection" required><option disabled value="">Choose direction</option><option value="ONE_WAY">One-Way</option><option value="ROUND_TRIP">Round Trip</option></select></label>
           <StatusSelect name="status" value={props.statuses.travel} /><button className="bg-blue-600 text-white px-4 py-2 rounded w-fit" disabled={pending}>Save Travel</button>
@@ -188,25 +192,25 @@ export function TripSections(props: TripSectionsProps) {
         {!props.tripDirection && <Notification className="mb-6" message="Choose One-Way or Round Trip and save travel information before adding segments." type="warning" />}
         {props.tripDirection === "ROUND_TRIP" && props.returnNeedsRegeneration && <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900"><p className="mb-3">Outbound journey changed. You can regenerate the return trip, but existing return edits will only be replaced after confirmation.</p>{confirmingRegeneration ? <div><p className="font-semibold mb-3">Replace all current return segments with newly generated ones?</p><div className="flex gap-3"><button className="bg-amber-700 text-white px-4 py-2 rounded" disabled={pending} onClick={async () => { await jsonRequest("PATCH", { action: "regenerateReturn", confirm: true }, "Return journey regenerated successfully"); setConfirmingRegeneration(false); }} type="button">Confirm Regeneration</button><button className="border border-amber-700 px-4 py-2 rounded" disabled={pending} onClick={() => setConfirmingRegeneration(false)} type="button">Cancel</button></div></div> : <button className="border border-amber-700 px-4 py-2 rounded disabled:opacity-60" disabled={pending} onClick={() => setConfirmingRegeneration(true)} type="button">Regenerate Return Trip</button>}</div>}
         <h3 className="text-xl font-semibold mb-3">Outbound Journey</h3>
-        <form className="grid sm:grid-cols-2 gap-3 mb-6" onSubmit={(event) => submitForm(event, "segment", "POST")}>
+        <form className="grid sm:grid-cols-2 gap-3 mb-6" onSubmit={(event) => submitForm(event, "segment", "POST", "Travel segment saved.")}>
           <select className="border p-2" name="type">{TRAVEL_SEGMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select><input className="border p-2" name="title" placeholder="Segment title" required />
           <input className="border p-2" name="date" type="date" /><input className="border p-2" name="time" type="time" /><input className="border p-2" name="startLocation" placeholder="From" /><input className="border p-2" name="destination" placeholder="To" />
           <textarea className="border p-2 sm:col-span-2" name="description" placeholder="Details" /><button className="bg-blue-600 text-white px-4 py-2 rounded w-fit" disabled={pending || !props.tripDirection}>Add Segment</button>
         </form>
         <div className="grid gap-3">{outboundSegments.map((item, index) => (
-          <form className="grid sm:grid-cols-2 gap-2 border rounded p-4" key={item.id} onSubmit={(event) => submitForm(event, "segment")}>
+          <form className="grid sm:grid-cols-2 gap-2 border rounded p-4" key={item.id} onSubmit={(event) => submitForm(event, "segment", "PATCH", "Travel segment saved.")}>
             <input name="itemId" type="hidden" value={item.id} /><select className="border p-2" defaultValue={item.type} name="type">{TRAVEL_SEGMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select><input className="border p-2" defaultValue={item.title} name="title" required />
             <input className="border p-2" defaultValue={item.date} name="date" type="date" /><input className="border p-2" defaultValue={item.time} name="time" type="time" /><input className="border p-2" defaultValue={item.startLocation} name="startLocation" placeholder="From" /><input className="border p-2" defaultValue={item.destination} name="destination" placeholder="To" />
-            <textarea className="border p-2 sm:col-span-2" defaultValue={item.description} name="description" /><div className="flex flex-wrap gap-2"><button className="border px-3 py-1 rounded" disabled={pending}>Save</button><button className="border px-3 py-1 rounded" disabled={pending || index === 0} onClick={() => jsonRequest("PATCH", { action: "reorderSegment", itemId: item.id, direction: "up" }, "Outbound segment moved successfully")} type="button">Move Up</button><button className="border px-3 py-1 rounded" disabled={pending || index === outboundSegments.length - 1} onClick={() => jsonRequest("PATCH", { action: "reorderSegment", itemId: item.id, direction: "down" }, "Outbound segment moved successfully")} type="button">Move Down</button><button className="text-red-600" disabled={pending} onClick={() => jsonRequest("DELETE", { action: "segment", itemId: item.id }, "Travel segment deleted successfully")} type="button">Delete</button></div>
+            <textarea className="border p-2 sm:col-span-2" defaultValue={item.description} name="description" /><div className="flex flex-wrap gap-2"><button className="border px-3 py-1 rounded" disabled={pending}>Save</button><button className="border px-3 py-1 rounded" disabled={pending || index === 0} onClick={() => jsonRequest("PATCH", { action: "reorderSegment", itemId: item.id, direction: "up" }, "Outbound segment moved successfully")} type="button">Move Up</button><button className="border px-3 py-1 rounded" disabled={pending || index === outboundSegments.length - 1} onClick={() => jsonRequest("PATCH", { action: "reorderSegment", itemId: item.id, direction: "down" }, "Outbound segment moved successfully")} type="button">Move Down</button><button className="text-red-600" disabled={pending} onClick={() => jsonRequest("DELETE", { action: "segment", itemId: item.id }, "Travel segment deleted.")} type="button">Delete</button></div>
           </form>
         ))}</div>
-        {props.tripDirection === "ROUND_TRIP" && <div className="mt-8"><div className="flex flex-wrap items-center justify-between gap-3 mb-3"><h3 className="text-xl font-semibold">Return Journey</h3>{!returnSegments.length && outboundSegments.length > 0 && <button className="border px-4 py-2 rounded" disabled={pending} onClick={() => jsonRequest("PATCH", { action: "regenerateReturn" }, "Return journey generated successfully")} type="button">Generate Return Journey</button>}</div><div className="grid gap-3">{returnSegments.map((item) => <form className="grid sm:grid-cols-2 gap-2 border rounded p-4" key={item.id} onSubmit={(event) => submitForm(event, "segment")}><input name="itemId" type="hidden" value={item.id} /><select className="border p-2" defaultValue={item.type} name="type">{TRAVEL_SEGMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select><input className="border p-2" defaultValue={item.title} name="title" required />{item.autoGenerated && <span className="w-fit rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 sm:col-span-2">Generated from outbound journey</span>}<input className="border p-2" defaultValue={item.date} name="date" type="date" /><input className="border p-2" defaultValue={item.time} name="time" type="time" /><input className="border p-2" defaultValue={item.startLocation} name="startLocation" placeholder="From" /><input className="border p-2" defaultValue={item.destination} name="destination" placeholder="To" /><textarea className="border p-2 sm:col-span-2" defaultValue={item.description} name="description" /><div className="flex gap-2"><button className="border px-3 py-1 rounded" disabled={pending}>Save</button><button className="text-red-600" disabled={pending} onClick={() => jsonRequest("DELETE", { action: "segment", itemId: item.id }, "Return segment deleted successfully")} type="button">Delete</button></div></form>)}</div></div>}
+        {props.tripDirection === "ROUND_TRIP" && <div className="mt-8"><div className="flex flex-wrap items-center justify-between gap-3 mb-3"><h3 className="text-xl font-semibold">Return Journey</h3>{!returnSegments.length && outboundSegments.length > 0 && <button className="border px-4 py-2 rounded" disabled={pending} onClick={() => jsonRequest("PATCH", { action: "regenerateReturn" }, "Return journey generated successfully")} type="button">Generate Return Journey</button>}</div><div className="grid gap-3">{returnSegments.map((item) => <form className="grid sm:grid-cols-2 gap-2 border rounded p-4" key={item.id} onSubmit={(event) => submitForm(event, "segment", "PATCH", "Travel segment saved.")}><input name="itemId" type="hidden" value={item.id} /><select className="border p-2" defaultValue={item.type} name="type">{TRAVEL_SEGMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select><input className="border p-2" defaultValue={item.title} name="title" required />{item.autoGenerated && <span className="w-fit rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 sm:col-span-2">Generated from outbound journey</span>}<input className="border p-2" defaultValue={item.date} name="date" type="date" /><input className="border p-2" defaultValue={item.time} name="time" type="time" /><input className="border p-2" defaultValue={item.startLocation} name="startLocation" placeholder="From" /><input className="border p-2" defaultValue={item.destination} name="destination" placeholder="To" /><textarea className="border p-2 sm:col-span-2" defaultValue={item.description} name="description" /><div className="flex gap-2"><button className="border px-3 py-1 rounded" disabled={pending}>Save</button><button className="text-red-600" disabled={pending} onClick={() => jsonRequest("DELETE", { action: "segment", itemId: item.id }, "Travel segment deleted.")} type="button">Delete</button></div></form>)}</div></div>}
         {props.segments.length > 0 && <div className="mt-8 border-t pt-6"><h3 className="text-lg font-semibold mb-2">Populate Itinerary</h3><p className="text-sm text-gray-600 mb-3">Create editable itinerary items from the travel method, route, date, and time.</p>{props.itinerary.length === 0 ? <button className="border px-4 py-2 rounded" disabled={pending} onClick={() => populateItinerary("add", false)} type="button">Create Itinerary from Travel</button> : confirmingItineraryPopulation ? <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900"><p className="mb-3">Your itinerary already has items. Add travel items or replace the existing itinerary?</p><div className="flex flex-wrap gap-3"><button className="border border-amber-700 px-4 py-2 rounded" disabled={pending} onClick={() => populateItinerary("add", true)} type="button">Add Travel Items</button><button className="bg-amber-700 text-white px-4 py-2 rounded" disabled={pending} onClick={() => populateItinerary("replace", true)} type="button">Replace Itinerary</button><button className="border px-4 py-2 rounded" disabled={pending} onClick={() => setConfirmingItineraryPopulation(false)} type="button">Cancel</button></div></div> : <button className="border px-4 py-2 rounded" disabled={pending} onClick={() => setConfirmingItineraryPopulation(true)} type="button">Populate Itinerary from Travel</button>}</div>}
       </section>
 
       {(["documents", "photos"] as const).map((kind) => {
         const media = kind === "documents" ? props.documents : props.photos;
-        return <section className="order-3 border rounded-lg p-6" key={kind}>
+        return <section className={`${kind === "documents" ? "order-4" : "order-5"} border rounded-lg p-6`} id={kind} key={kind}>
           <header className="flex justify-between gap-4 mb-4"><h2 className="text-2xl font-bold capitalize">{kind}</h2><StatusBadge status={props.statuses[kind]} /></header>
           <form className="flex flex-wrap gap-3 mb-4" onSubmit={(event) => submitForm(event, "sectionStatus")}><input name="section" type="hidden" value={kind} /><StatusSelect name="status" value={props.statuses[kind]} /><button className="border px-4 rounded" disabled={pending}>Update Status</button></form>
           <form className="flex flex-wrap gap-3 mb-5" onSubmit={(event) => upload(event, kind)}><input accept={kind === "documents" ? "application/pdf" : "image/jpeg,image/png,image/webp,image/gif"} name="file" required type="file" /><button className="bg-blue-600 text-white px-4 py-2 rounded" disabled={pending}>{pendingAction === `upload-${kind}` ? "Uploading..." : "Upload"}</button></form>
@@ -217,6 +221,7 @@ export function TripSections(props: TripSectionsProps) {
           </div>)}</div>
         </section>;
       })}
+      <div className="order-6" id="polls">{props.pollsSection}</div>
     </div>
   );
 }

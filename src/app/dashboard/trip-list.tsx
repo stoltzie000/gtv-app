@@ -21,6 +21,7 @@ type Trip = {
   documentsStatus: string;
   photosStatus: string;
   draftReminderAt: string | null;
+  _count: { updates: number; polls: number };
 };
 
 export function TripList() {
@@ -106,8 +107,14 @@ export function TripList() {
               Draft inactive for at least 15 days. It will be deleted after 30 days of inactivity.
             </p>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4 text-xs">
-            {[["Overview", trip.overviewStatus], ["Travel", trip.travelStatus], ["Itinerary", trip.itineraryStatus], ["Documents", trip.documentsStatus], ["Photos", trip.photosStatus]].map(([label, status]) => <div key={label}><p className="mb-1">{label}</p><StatusBadge status={status} /></div>)}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mt-4 text-xs">
+            <div><p className="mb-1">Overview</p><StatusBadge status={trip.overviewStatus} /></div>
+            <div><p className="mb-1">Updates</p><p>{trip._count.updates}</p></div>
+            <div><p className="mb-1">Travel</p><StatusBadge status={trip.travelStatus} /></div>
+            <div><p className="mb-1">Itinerary</p><StatusBadge status={trip.itineraryStatus} /></div>
+            <div><p className="mb-1">Documents</p><StatusBadge status={trip.documentsStatus} /></div>
+            <div><p className="mb-1">Photos</p><StatusBadge status={trip.photosStatus} /></div>
+            <div><p className="mb-1">Polls</p><p>{trip._count.polls}</p></div>
           </div>
         </li>
       ))}

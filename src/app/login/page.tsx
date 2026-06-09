@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { use, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Notification } from "@/app/components/notification";
+import Link from "next/link";
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
   const router = useRouter();
+  const notice = use(searchParams).notice;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -43,6 +45,8 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen p-8 max-w-md mx-auto">
       <h1 className="text-4xl font-bold mb-8">Login</h1>
+      {notice === "account-deleted" && <Notification className="mb-4" message="Account deleted." type="success" />}
+      {notice === "account-created" && <Notification className="mb-4" message="Account created. You can now log in." type="success" />}
 
       <form onSubmit={handleLogin}>
         <label className="block mb-2" htmlFor="email">
@@ -81,6 +85,7 @@ export default function LoginPage() {
           {submitting ? "Logging in..." : "Login"}
         </button>
       </form>
+      <p className="mt-6 text-sm">Need an account? <Link className="text-blue-700 hover:underline" href="/register">Register</Link></p>
     </main>
   );
 }

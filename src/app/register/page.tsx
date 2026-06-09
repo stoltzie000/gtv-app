@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Notification } from "@/app/components/notification";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function handleRegister() {
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (password !== confirmPassword) {
       setNotice({ type: "error", text: "Passwords do not match" });
       return;
@@ -25,7 +29,8 @@ export default function RegisterPage() {
       });
       const data = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(data?.error ?? "Unable to create account");
-      setNotice({ type: "success", text: "Account created successfully" });
+      router.push("/login?notice=account-created");
+      router.refresh();
     } catch (registerError) {
       setNotice({ type: "error", text: registerError instanceof Error ? registerError.message : "Unable to create account" });
     } finally {
@@ -39,41 +44,22 @@ export default function RegisterPage() {
         Create Account
       </h1>
 
-      <p className="mb-2">Email Address</p>
+      <form onSubmit={handleRegister}>
+        <label className="block mb-2" htmlFor="email">Email Address</label>
+        <input autoComplete="email" className="border p-2 w-full mb-6" id="email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
 
-      <input
-        className="border p-2 w-full mb-6"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <label className="block mb-2" htmlFor="password">Password</label>
+        <input autoComplete="new-password" className="border p-2 w-full mb-6" id="password" minLength={8} required type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
 
-      <p className="mb-2">Password</p>
+        <label className="block mb-2" htmlFor="confirmPassword">Confirm Password</label>
+        <input autoComplete="new-password" className="border p-2 w-full mb-6" id="confirmPassword" minLength={8} required type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
 
-      <input
-        className="border p-2 w-full mb-6"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-
-      <p className="mb-2">Confirm Password</p>
-
-      <input
-        className="border p-2 w-full mb-6"
-        type="password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-      />
-
-      <button
-        onClick={handleRegister}
-        className="bg-blue-600 text-white px-6 py-3 rounded disabled:opacity-60"
-        disabled={pending}
-      >
-        {pending ? "Creating..." : "Create Account"}
-      </button>
-      {notice && <Notification className="mt-4" message={notice.text} type={notice.type} />}
+        {notice && <Notification className="mb-4" message={notice.text} type={notice.type} />}
+        <button className="bg-blue-600 text-white px-6 py-3 rounded disabled:opacity-60" disabled={pending} type="submit">
+          {pending ? "Creating..." : "Create Account"}
+        </button>
+      </form>
+      <p className="mt-6 text-sm">Already registered? <Link className="text-blue-700 hover:underline" href="/login">Login</Link></p>
     </main>
   );
 }

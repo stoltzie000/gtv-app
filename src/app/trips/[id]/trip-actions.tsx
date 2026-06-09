@@ -37,7 +37,7 @@ export function TripActions({ id, tripName, isPublished }: TripActionsProps) {
       }
 
       setPublished(!published);
-      setMessage({ type: "success", text: published ? "Trip unpublished successfully" : "Trip published successfully" });
+      setMessage({ type: "success", text: published ? "Trip unpublished." : "Trip published." });
       router.refresh();
     } catch (updateError) {
       setMessage({ type: "error", text: updateError instanceof Error ? updateError.message : "Unable to update publication state" });

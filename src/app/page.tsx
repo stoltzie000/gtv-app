@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center p-8 max-w-4xl mx-auto">
@@ -11,12 +13,12 @@ export default function Home() {
   </p>
 
   <div className="mt-8 flex gap-4">
-  <a
+  <Link
     href="/create-trip"
     className="bg-blue-600 text-white px-6 py-3 rounded"
   >
     Create Trip
-  </a>
+  </Link>
 
   <button className="border px-6 py-3 rounded">
     View Demo
@@ -51,8 +53,8 @@ export default function Home() {
 </div>
 
 <div className="mt-16 flex gap-6 text-sm text-gray-600">
-  <a href="#" className="hover:text-blue-600">Login</a>
-  <a href="#" className="hover:text-blue-600">Register</a>
+  <Link href="/login" className="hover:text-blue-600">Login</Link>
+  <Link href="/register" className="hover:text-blue-600">Register</Link>
 </div>
 
 <div className="mt-12 text-xs text-gray-500 text-center">

@@ -141,6 +141,7 @@ export async function PATCH(
       await tx.itineraryItem.createMany({
         data: segments.map((segment) => ({
           tripId,
+          sourceTravelSegmentId: segment.id,
           date: segment.date ?? (segment.journey === "RETURN" ? trip.endDate : trip.startDate),
           time: segment.time || "00:00",
           title: `${segment.type}: ${segment.startLocation || "Start"} to ${segment.destination || "Destination"}`,

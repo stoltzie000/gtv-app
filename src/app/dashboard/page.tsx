@@ -20,8 +20,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <AccountActions />
       </div>
       <p>Welcome to GTV, {session.email}.</p>
-      {notice === "trip-created" && <Notification className="mt-6" message="Trip saved successfully" type="success" />}
-      {notice === "trip-deleted" && <Notification className="mt-6" message="Trip deleted successfully" type="success" />}
+      {notice === "trip-created" && <Notification className="mt-6" message="Trip saved." type="success" />}
+      {notice === "trip-deleted" && <Notification className="mt-6" message="Trip deleted." type="success" />}
 
       <Link
         className="inline-block mt-8 bg-blue-600 text-white px-6 py-3 rounded"

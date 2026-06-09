@@ -3,6 +3,29 @@ import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import { parseText } from "@/lib/trips";
 
+const UPDATE_TYPES = ["GENERAL", "TRAVEL", "ITINERARY"] as const;
+
+async function parseUpdateLink(tripId: number, body: Record<string, unknown>) {
+  const updateType = UPDATE_TYPES.includes(body.updateType as typeof UPDATE_TYPES[number])
+    ? body.updateType as typeof UPDATE_TYPES[number]
+    : null;
+  if (!updateType) return null;
+
+  if (updateType === "TRAVEL") {
+    const travelSegmentId = Number(body.travelSegmentId);
+    if (!Number.isInteger(travelSegmentId)) return null;
+    const segment = await prisma.travelSegment.findFirst({ where: { id: travelSegmentId, tripId }, select: { id: true } });
+    return segment ? { updateType, travelSegmentId, sourceTravelSegmentId: travelSegmentId, itineraryItemId: null } : null;
+  }
+  if (updateType === "ITINERARY") {
+    const itineraryItemId = Number(body.itineraryItemId);
+    if (!Number.isInteger(itineraryItemId)) return null;
+    const item = await prisma.itineraryItem.findFirst({ where: { id: itineraryItemId, tripId }, select: { id: true } });
+    return item ? { updateType, travelSegmentId: null, sourceTravelSegmentId: null, itineraryItemId } : null;
+  }
+  return { updateType, travelSegmentId: null, sourceTravelSegmentId: null, itineraryItemId: null };
+}
+
 async function ownedId(params: Promise<{ id: string }>) {
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id < 1) return null;
@@ -18,8 +41,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (body?.action === "update") {
     const title = parseText(body.title, true);
     const content = parseText(body.content, true);
-    if (!title || !content) return NextResponse.json({ error: "Title and update are required" }, { status: 400 });
-    const update = await prisma.tripUpdate.create({ data: { tripId, title, content } });
+    const link = await parseUpdateLink(tripId, body);
+    if (!title || !content || !link) return NextResponse.json({ error: "Title, update type, and affected item are required" }, { status: 400 });
+    const update = await prisma.tripUpdate.create({ data: { tripId, title, content, ...link } });
     return NextResponse.json({ update }, { status: 201 });
   }
 
@@ -51,8 +75,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const updateId = Number(body.updateId);
     const title = parseText(body.title, true);
     const content = parseText(body.content, true);
-    if (!Number.isInteger(updateId) || !title || !content) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
-    const result = await prisma.tripUpdate.updateMany({ where: { id: updateId, tripId }, data: { title, content } });
+    const link = await parseUpdateLink(tripId, body);
+    if (!Number.isInteger(updateId) || !title || !content || !link) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
+    const result = await prisma.tripUpdate.updateMany({ where: { id: updateId, tripId }, data: { title, content, ...link } });
     if (!result.count) return NextResponse.json({ error: "Update not found" }, { status: 404 });
     return NextResponse.json({ success: true });
   }

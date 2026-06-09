@@ -34,6 +34,7 @@ export const tripSelect = {
   photosStatus: true,
   lastActivityAt: true,
   draftReminderAt: true,
+  _count: { select: { updates: true, polls: true } },
 } as const;
 
 export const TRAVEL_SEGMENT_TYPES = [

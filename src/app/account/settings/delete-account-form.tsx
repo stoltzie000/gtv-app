@@ -14,23 +14,26 @@ export function DeleteAccountForm() {
     event.preventDefault();
     setPending(true);
     setError("");
-    const response = await fetch("/api/account", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirmation }),
-    });
-    const data = (await response.json().catch(() => null)) as
-      | { error?: string }
-      | null;
+    try {
+      const response = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
 
-    if (!response.ok) {
-      setError(data?.error ?? "Unable to delete account");
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to delete account");
+      }
+
+      router.replace("/login?notice=account-deleted");
+      router.refresh();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete account");
       setPending(false);
-      return;
     }
-
-    router.replace("/login");
-    router.refresh();
   }
 
   return (

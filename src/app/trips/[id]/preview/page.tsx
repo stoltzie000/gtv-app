@@ -39,6 +39,7 @@ export default async function TripPreviewPage({
   if (!trip) {
     notFound();
   }
+  const [{ now }] = await prisma.$queryRaw<Array<{ now: Date }>>`SELECT NOW() AS now`;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -55,7 +56,7 @@ export default async function TripPreviewPage({
           </Link>
         </div>
 
-        <TravelerTripView publicToken={trip.shareToken ?? "preview"} readOnly trip={trip} />
+        <TravelerTripView initialNow={now.getTime()} publicToken={trip.shareToken ?? "preview"} readOnly trip={trip} />
       </div>
     </main>
   );
