@@ -49,6 +49,26 @@ export function parseDateOnly(value: unknown) {
   return parseDate(value);
 }
 
+function dateKey(value: Date | string) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : value.slice(0, 10);
+}
+
+export function isDateWithinTrip(date: Date | string, startDate: Date | string, endDate: Date | string) {
+  const value = dateKey(date);
+  return value >= dateKey(startDate) && value <= dateKey(endDate);
+}
+
+export function tripDateRangeError(startDate: Date | string, endDate: Date | string) {
+  const format = (value: Date | string) => new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${dateKey(value)}T00:00:00.000Z`));
+
+  return `Date must be between the trip start date (${format(startDate)}) and trip end date (${format(endDate)}).`;
+}
+
 function parseDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;

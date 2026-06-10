@@ -1,14 +1,44 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
+import { detectUploadType } from "@/lib/file-validation";
 import {
   DOCUMENT_LIMIT,
   FILE_SIZE_LIMIT,
   PHOTO_LIMIT,
   TRIP_STORAGE_LIMIT,
+  UPLOAD_REQUEST_SIZE_LIMIT,
 } from "@/lib/platform";
 
-const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+async function readLimitedBody(request: Request) {
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > UPLOAD_REQUEST_SIZE_LIMIT) return null;
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > UPLOAD_REQUEST_SIZE_LIMIT) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
 
 export async function POST(
   request: Request,
@@ -21,7 +51,18 @@ export async function POST(
     return NextResponse.json({ error: "Trip not found" }, { status: 404 });
   }
 
-  const formData = await request.formData().catch(() => null);
+  if (!request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data")) {
+    return NextResponse.json({ error: "Upload must use multipart form data" }, { status: 400 });
+  }
+  const requestBody = await readLimitedBody(request);
+  if (!requestBody) {
+    return NextResponse.json({ error: "Upload request is too large. Files must be 5 MB or smaller." }, { status: 413 });
+  }
+  const formData = await new Request(request.url, {
+    method: "POST",
+    headers: request.headers,
+    body: requestBody,
+  }).formData().catch(() => null);
   const file = formData?.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "Select a file" }, { status: 400 });
@@ -32,19 +73,24 @@ export async function POST(
   if (!isDocument && !isPhoto) {
     return NextResponse.json({ error: "Invalid media type" }, { status: 400 });
   }
-  if (isDocument && (file.type !== "application/pdf" || file.size > FILE_SIZE_LIMIT)) {
-    return NextResponse.json({ error: "PDF must be 5 MB or smaller" }, { status: 400 });
+  if (file.size > FILE_SIZE_LIMIT) {
+    return NextResponse.json({ error: "File must be 5 MB or smaller" }, { status: 413 });
   }
-  if (isPhoto && (!PHOTO_TYPES.includes(file.type) || file.size > FILE_SIZE_LIMIT)) {
-    return NextResponse.json({ error: "Photo must be JPEG, PNG, WebP, or GIF and 5 MB or smaller" }, { status: 400 });
+  const fileData = new Uint8Array(await file.arrayBuffer());
+  const detectedType = detectUploadType(fileData);
+  if (isDocument && detectedType !== "application/pdf") {
+    return NextResponse.json({ error: "Document must be a valid PDF file" }, { status: 400 });
+  }
+  if (isPhoto && (!detectedType || !PHOTO_TYPES.has(detectedType))) {
+    return NextResponse.json({ error: "Photo must be a valid JPEG, PNG, WebP, or GIF file" }, { status: 400 });
   }
 
   const record = {
     tripId: owned.tripId,
     name: file.name.slice(0, 255),
-    mimeType: file.type,
+    mimeType: detectedType!,
     size: file.size,
-    data: new Uint8Array(await file.arrayBuffer()),
+    data: fileData,
   };
   try {
     const media = await prisma.$transaction(async (tx) => {

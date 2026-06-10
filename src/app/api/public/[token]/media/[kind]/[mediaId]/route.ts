@@ -22,7 +22,7 @@ export async function GET(
       "Content-Length": String(media.size),
       "Content-Disposition": `${kind === "documents" ? "attachment" : "inline"}; filename="${media.name.replace(/["\\]/g, "_")}"`,
       "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "public, max-age=300",
+      "Cache-Control": "private, no-store, max-age=0",
     },
   });
 }

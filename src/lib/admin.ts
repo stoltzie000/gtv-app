@@ -1,4 +1,5 @@
 import { verifyToken } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function verifyAdmin() {
   const session = await verifyToken();
@@ -9,5 +10,12 @@ export async function verifyAdmin() {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 
-  return admins.includes(session.email.toLowerCase()) ? session : null;
+  if (!admins.includes(session.email.toLowerCase())) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true },
+  });
+
+  return user && user.email.toLowerCase() === session.email.toLowerCase() ? session : null;
 }

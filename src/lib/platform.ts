@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { cleanExpiredRateLimits } from "@/lib/rate-limit";
 
 export const PHOTO_LIMIT = 25;
 export const DOCUMENT_LIMIT = 15;
 export const FILE_SIZE_LIMIT = 5 * 1024 * 1024;
+export const UPLOAD_REQUEST_SIZE_LIMIT = FILE_SIZE_LIMIT + 64 * 1024;
 export const TRIP_STORAGE_LIMIT = 200 * 1024 * 1024;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -27,6 +29,7 @@ export async function touchTrip(tripId: number, userId: number) {
 }
 
 export async function runLifecycleJobs(now = new Date()) {
+  await cleanExpiredRateLimits();
   const reminderCutoff = daysAgo(15, now);
   const draftDeleteCutoff = daysAgo(30, now);
   const accountWarningCutoff = daysAgo(335, now);

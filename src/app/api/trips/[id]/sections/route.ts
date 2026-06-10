@@ -3,9 +3,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import {
+  isDateWithinTrip,
   parseDateOnly,
   parseText,
   parseTravelDirection,
+  tripDateRangeError,
   TRAVEL_SEGMENT_TYPES,
 } from "@/lib/trips";
 import { parseTripSummary } from "@/lib/trip-summary";
@@ -15,6 +17,19 @@ async function ownedId(params: Promise<{ id: string }>) {
   if (!Number.isInteger(id) || id < 1) return null;
   const owned = await getOwnedTripId(id);
   return owned.session && owned.tripId ? owned.tripId : null;
+}
+
+async function tripDateRange(tripId: number) {
+  return prisma.trip.findUnique({
+    where: { id: tripId },
+    select: { startDate: true, endDate: true },
+  });
+}
+
+function invalidTripDate(date: Date, range: { startDate: Date; endDate: Date }) {
+  return isDateWithinTrip(date, range.startDate, range.endDate)
+    ? null
+    : tripDateRangeError(range.startDate, range.endDate);
 }
 
 export async function PATCH(
@@ -95,6 +110,10 @@ export async function PATCH(
     if (!trip || !segments.length) {
       return NextResponse.json({ error: "Add travel segments before populating the itinerary" }, { status: 400 });
     }
+    const invalidSegment = segments.find((segment) => segment.date && !isDateWithinTrip(segment.date, trip.startDate, trip.endDate));
+    if (invalidSegment) {
+      return NextResponse.json({ error: tripDateRangeError(trip.startDate, trip.endDate) }, { status: 400 });
+    }
     if (itineraryCount && body.confirm !== true) {
       return NextResponse.json({ error: "Confirm before changing an existing itinerary" }, { status: 409 });
     }
@@ -122,6 +141,10 @@ export async function PATCH(
     if (!Number.isInteger(itemId) || !date || !time || !title || description === null) {
       return NextResponse.json({ error: "Invalid itinerary item" }, { status: 400 });
     }
+    const range = await tripDateRange(tripId);
+    if (!range) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    const dateError = invalidTripDate(date, range);
+    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
     const result = await prisma.itineraryItem.updateMany({
       where: { id: itemId, tripId },
       data: { date, time, title, description },
@@ -140,6 +163,10 @@ export async function PATCH(
     if (!Number.isInteger(itemId) || !type || !title || description === null || startLocation === null || destination === null || !direction || (body.date && !date) || !TRAVEL_SEGMENT_TYPES.includes(type as never)) {
       return NextResponse.json({ error: "Invalid travel segment" }, { status: 400 });
     }
+    const range = date ? await tripDateRange(tripId) : null;
+    if (date && !range) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    const dateError = date && range ? invalidTripDate(date, range) : null;
+    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
     const existing = await prisma.travelSegment.findFirst({ where: { id: itemId, tripId } });
     if (!existing) return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     await prisma.$transaction(async (tx) => {
@@ -190,6 +217,10 @@ export async function POST(
     if (!date || !time || !title || description === null) {
       return NextResponse.json({ error: "Invalid itinerary item" }, { status: 400 });
     }
+    const range = await tripDateRange(tripId);
+    if (!range) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    const dateError = invalidTripDate(date, range);
+    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
     const item = await prisma.itineraryItem.create({
       data: { tripId, date, time, title, description },
     });
@@ -208,6 +239,10 @@ export async function POST(
     if (!type || !title || description === null || startLocation === null || destination === null || !direction || (body.date && !date) || !TRAVEL_SEGMENT_TYPES.includes(type as never)) {
       return NextResponse.json({ error: "Invalid travel segment" }, { status: 400 });
     }
+    const range = date ? await tripDateRange(tripId) : null;
+    if (date && !range) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    const dateError = date && range ? invalidTripDate(date, range) : null;
+    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
     const item = await prisma.$transaction(async (tx) => {
       const last = await tx.travelSegment.aggregate({ where: { tripId }, _max: { position: true } });
       const created = await tx.travelSegment.create({

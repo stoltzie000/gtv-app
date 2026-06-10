@@ -6,12 +6,29 @@ import {
   AUTH_TOKEN_MAX_AGE,
   createToken,
 } from "@/lib/auth";
+import { checkRateLimit, clearRateLimit, rateLimitIdentity, requestIp } from "@/lib/rate-limit";
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function limited(retryAfter: number) {
+  return NextResponse.json(
+    { error: "Too many login attempts. Try again later." },
+    { status: 429, headers: { "Retry-After": String(retryAfter) } }
+  );
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
 
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
+  const ip = requestIp(request);
+  const ipLimit = await checkRateLimit(`login:ip:${ip}`, 20, LOGIN_WINDOW_MS);
+  if (!ipLimit.allowed) return limited(ipLimit.retryAfter);
+
+  const accountKey = `login:account:${ip}:${rateLimitIdentity(email || "missing")}`;
+  const accountLimit = await checkRateLimit(accountKey, 8, LOGIN_WINDOW_MS);
+  if (!accountLimit.allowed) return limited(accountLimit.retryAfter);
 
   if (!email || !password) {
     return NextResponse.json(
@@ -41,6 +58,8 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   }
+
+  await clearRateLimit(accountKey);
 
   await prisma.user.update({
     where: { id: user.id },
