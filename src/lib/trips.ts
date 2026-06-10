@@ -4,17 +4,7 @@ export type TripInput = {
   startDate?: unknown;
   endDate?: unknown;
   travelerCount?: unknown;
-  status?: unknown;
 };
-
-export const TRIP_STATUSES = [
-  "Not Started",
-  "In Progress",
-  "Completed",
-  "Optional",
-] as const;
-
-export type TripStatus = (typeof TRIP_STATUSES)[number];
 
 export const tripSelect = {
   id: true,
@@ -23,15 +13,9 @@ export const tripSelect = {
   startDate: true,
   endDate: true,
   travelerCount: true,
-  status: true,
   isPublished: true,
   shareToken: true,
   createdAt: true,
-  overviewStatus: true,
-  itineraryStatus: true,
-  travelStatus: true,
-  documentsStatus: true,
-  photosStatus: true,
   lastActivityAt: true,
   draftReminderAt: true,
   _count: { select: { updates: true, polls: true } },
@@ -47,12 +31,12 @@ export const TRAVEL_SEGMENT_TYPES = [
   "Custom",
 ] as const;
 
-export const TRIP_DIRECTIONS = ["ONE_WAY", "ROUND_TRIP"] as const;
-export type TripDirection = (typeof TRIP_DIRECTIONS)[number];
+export const TRAVEL_DIRECTIONS = ["ONE_WAY", "ROUND_TRIP"] as const;
+export type TravelDirection = (typeof TRAVEL_DIRECTIONS)[number];
 
-export function parseTripDirection(value: unknown): TripDirection | null {
-  return typeof value === "string" && TRIP_DIRECTIONS.includes(value as TripDirection)
-    ? value as TripDirection
+export function parseTravelDirection(value: unknown): TravelDirection | null {
+  return typeof value === "string" && TRAVEL_DIRECTIONS.includes(value as TravelDirection)
+    ? value as TravelDirection
     : null;
 }
 
@@ -73,13 +57,6 @@ function parseDate(value: unknown) {
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
     ? date
-    : null;
-}
-
-export function parseTripStatus(value: unknown): TripStatus | null {
-  return typeof value === "string" &&
-    TRIP_STATUSES.includes(value as TripStatus)
-    ? (value as TripStatus)
     : null;
 }
 

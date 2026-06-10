@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { TravelerPolls } from "@/app/share/[token]/polls";
 import { InlineLinkedUpdates, LinkedUpdateBadge, TravelerUpdateProvider, TravelerUpdatesFeed, TripWideUpdateBadge } from "./traveler-update-awareness";
+import { resolveTripSummary } from "@/lib/trip-summary";
 
 type TravelerTrip = {
   id: number;
@@ -13,9 +14,9 @@ type TravelerTrip = {
   notes: string;
   destination: string;
   startLocation: string;
-  tripDirection: string | null;
+  tripSummary: unknown;
   itineraryItems: Array<{ id: number; date: Date; time: string; title: string; description: string; sourceTravelSegmentId: number | null }>;
-  travelSegments: Array<{ id: number; type: string; title: string; description: string; journey: string; date: Date | null; time: string | null; startLocation: string; destination: string }>;
+  travelSegments: Array<{ id: number; type: string; title: string; description: string; direction: string; returnForSegmentId: number | null; date: Date | null; time: string | null; startLocation: string; destination: string }>;
   documents: Array<{ id: number; name: string; size: number }>;
   photos: Array<{ id: number; name: string; size: number }>;
   updates: Array<{ id: number; title: string; content: string; createdAt: Date; updatedAt: Date; updateType: string; updateKind: string; travelSegmentId: number | null; sourceTravelSegmentId: number | null; itineraryItemId: number | null; originalDate: Date | null; originalTime: string | null; newDate: Date | null; newTime: string | null }>;
@@ -44,8 +45,7 @@ export function TravelerTripView({ trip, publicToken, readOnly, initialNow }: { 
   const mediaBase = readOnly
     ? `/api/trips/${trip.id}/media`
     : `/api/public/${publicToken}/media`;
-  const outboundSegments = trip.travelSegments.filter((segment) => segment.journey !== "RETURN");
-  const returnSegments = trip.travelSegments.filter((segment) => segment.journey === "RETURN");
+  const tripSummary = resolveTripSummary(trip.tripSummary, trip);
   const updates = trip.updates.map((update) => {
     if (update.updateType === "GENERAL") return { ...update, expiresAt: null };
     if (update.updateType === "ITINERARY") {
@@ -92,6 +92,7 @@ export function TravelerTripView({ trip, publicToken, readOnly, initialNow }: { 
           <div><h2 className="font-semibold text-gray-600">Trip Dates</h2><p>Leaves home: {dateFormatter.format(trip.startDate)}<br />Returns home: {dateFormatter.format(trip.endDate)}</p></div>
           <div><h2 className="font-semibold text-gray-600">Travelers</h2><p>{trip.travelerCount} traveler{trip.travelerCount === 1 ? "" : "s"}</p></div>
         </div>
+        {tripSummary.length > 0 && <div className="mt-6 border-t pt-5"><h2 className="text-xl font-bold mb-3">Trip Summary</h2><ol className="grid gap-2">{tripSummary.map((entry, index) => <li className="grid gap-1 sm:grid-cols-[7rem_1fr]" key={`${entry.date}-${index}`}><time className="font-semibold" dateTime={entry.date}>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${entry.date}T00:00:00.000Z`))}</time><span>{entry.title}</span></li>)}</ol></div>}
       </section>
 
       {generalUpdates.length > 0 && <section className="bg-white border rounded-lg p-6" id="notices"><h2 className="text-xl font-bold mb-3">Trip Notices</h2><TravelerUpdatesFeed updates={generalUpdates} /></section>}
@@ -102,8 +103,7 @@ export function TravelerTripView({ trip, publicToken, readOnly, initialNow }: { 
 
       <section className="bg-white border rounded-lg p-8" id="travel"><h2 className="text-2xl font-bold mb-4">Travel</h2>
         {(trip.startLocation || trip.destination) && <p className="mb-4">{trip.startLocation || "Start"} to {trip.destination || "Destination"}</p>}
-        <h3 className="text-lg font-semibold mb-3">Outbound Journey</h3>{renderSegments(outboundSegments)}
-        {trip.tripDirection === "ROUND_TRIP" && <div className="mt-6"><h3 className="text-lg font-semibold mb-3">Return Journey</h3>{renderSegments(returnSegments)}</div>}
+        {renderSegments(trip.travelSegments)}
       </section>
 
       <section className="bg-white border rounded-lg p-8" id="itinerary"><h2 className="text-2xl font-bold mb-4">Itinerary</h2>

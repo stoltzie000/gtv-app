@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { TRIP_STATUSES, type TripStatus } from "@/lib/trips";
 import { Notification } from "@/app/components/notification";
 
 type EditableTrip = {
@@ -12,7 +11,6 @@ type EditableTrip = {
   startDate: string;
   endDate: string;
   travelerCount: number;
-  status: TripStatus;
 };
 
 const tripTypes = [
@@ -47,7 +45,6 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
           startDate: form.get("startDate"),
           endDate: form.get("endDate"),
           travelerCount: Number(form.get("travelerCount")),
-          status: form.get("status"),
         }),
       });
       const data = (await response.json().catch(() => null)) as
@@ -76,11 +73,6 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
       <label className="block mb-2" htmlFor="tripType">Trip Type</label>
       <select className="border p-2 w-full mb-6" defaultValue={trip.tripType} id="tripType" name="tripType" required>
         {tripTypes.map((type) => <option key={type}>{type}</option>)}
-      </select>
-
-      <label className="block mb-2" htmlFor="status">Status</label>
-      <select className="border p-2 w-full mb-6" defaultValue={trip.status} id="status" name="status" required>
-        {TRIP_STATUSES.map((status) => <option key={status}>{status}</option>)}
       </select>
 
       <label className="block mb-2" htmlFor="startDate">Start Date</label>

@@ -25,7 +25,7 @@ export default async function TripPreviewPage({
     where: { id, ownerId: session.userId },
     include: {
       itineraryItems: { orderBy: [{ date: "asc" }, { time: "asc" }] },
-      travelSegments: { orderBy: [{ journey: "asc" }, { position: "asc" }, { id: "asc" }] },
+      travelSegments: { orderBy: [{ position: "asc" }, { id: "asc" }] },
       documents: { select: { id: true, name: true, size: true } },
       photos: { select: { id: true, name: true, size: true } },
       updates: { orderBy: { createdAt: "desc" } },

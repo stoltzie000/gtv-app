@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { StatusBadge } from "@/app/components/status-badge";
-import type { TripStatus } from "@/lib/trips";
 import { Notification } from "@/app/components/notification";
 
 type Trip = {
@@ -13,13 +11,7 @@ type Trip = {
   startDate: string;
   endDate: string;
   travelerCount: number;
-  status: TripStatus;
   isPublished: boolean;
-  overviewStatus: string;
-  itineraryStatus: string;
-  travelStatus: string;
-  documentsStatus: string;
-  photosStatus: string;
   draftReminderAt: string | null;
   _count: { updates: number; polls: number };
 };
@@ -82,14 +74,13 @@ export function TripList() {
     <ul className="mt-8 grid gap-4">
       {trips.map((trip) => (
         <li className="border rounded p-4" key={trip.id}>
-          <div className="flex items-center justify-between gap-4 mb-2">
+          <div className="mb-2">
             <Link
               className="text-xl font-semibold text-blue-700 hover:underline"
               href={`/trips/${trip.id}`}
             >
               {trip.tripName}
             </Link>
-            <StatusBadge status={trip.status} />
           </div>
           <p>{trip.tripType}</p>
           <p>
@@ -107,13 +98,8 @@ export function TripList() {
               Draft inactive for at least 15 days. It will be deleted after 30 days of inactivity.
             </p>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mt-4 text-xs">
-            <div><p className="mb-1">Overview</p><StatusBadge status={trip.overviewStatus} /></div>
+          <div className="grid grid-cols-2 gap-2 mt-4 text-xs sm:grid-cols-3">
             <div><p className="mb-1">Updates</p><p>{trip._count.updates}</p></div>
-            <div><p className="mb-1">Travel</p><StatusBadge status={trip.travelStatus} /></div>
-            <div><p className="mb-1">Itinerary</p><StatusBadge status={trip.itineraryStatus} /></div>
-            <div><p className="mb-1">Documents</p><StatusBadge status={trip.documentsStatus} /></div>
-            <div><p className="mb-1">Photos</p><StatusBadge status={trip.photosStatus} /></div>
             <div><p className="mb-1">Polls</p><p>{trip._count.polls}</p></div>
           </div>
         </li>

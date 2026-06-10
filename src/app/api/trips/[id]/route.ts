@@ -3,7 +3,6 @@ import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   parseTripInput,
-  parseTripStatus,
   tripSelect,
   type TripInput,
 } from "@/lib/trips";
@@ -78,9 +77,7 @@ export async function PATCH(
     data = { isPublished: body.isPublished, lastActivityAt: new Date(), draftReminderAt: null };
   } else {
     const input = parseTripInput(body);
-    const status = parseTripStatus(body.status);
-
-    if (!input || !status) {
+    if (!input) {
       return NextResponse.json(
         { error: "Enter valid trip details and date range" },
         { status: 400 }
@@ -88,7 +85,6 @@ export async function PATCH(
     }
     data = {
       ...input,
-      status,
       lastActivityAt: new Date(),
       draftReminderAt: null,
     };
