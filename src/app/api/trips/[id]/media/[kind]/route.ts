@@ -9,36 +9,9 @@ import {
   TRIP_STORAGE_LIMIT,
   UPLOAD_REQUEST_SIZE_LIMIT,
 } from "@/lib/platform";
+import { readLimitedBody } from "@/lib/upload-body";
 
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
-async function readLimitedBody(request: Request) {
-  const declaredLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > UPLOAD_REQUEST_SIZE_LIMIT) return null;
-  if (!request.body) return new Uint8Array();
-
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > UPLOAD_REQUEST_SIZE_LIMIT) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-
-  const body = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return body;
-}
 
 export async function POST(
   request: Request,
@@ -54,7 +27,7 @@ export async function POST(
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data")) {
     return NextResponse.json({ error: "Upload must use multipart form data" }, { status: 400 });
   }
-  const requestBody = await readLimitedBody(request);
+  const requestBody = await readLimitedBody(request, UPLOAD_REQUEST_SIZE_LIMIT);
   if (!requestBody) {
     return NextResponse.json({ error: "Upload request is too large. Files must be 5 MB or smaller." }, { status: 413 });
   }

@@ -1,6 +1,6 @@
 # GTV Test Suite
 
-The suite uses Vitest with mocked Prisma, authentication, email, and storage boundaries. It focuses on route-level behavior and high-risk domain rules without requiring a disposable database for every run.
+The fast suite uses Vitest with mocked boundaries. Extended tests use a disposable PostgreSQL database, real Prisma migrations, temporary S3-compatible storage, and Playwright Chromium. No production database or storage service is used.
 
 ## Structure
 
@@ -14,11 +14,19 @@ The suite uses Vitest with mocked Prisma, authentication, email, and storage bou
 - `update-indicators.test.tsx`: traveler UPDATE badges
 - `domain.test.ts`: date, summary, schedule, and file-signature rules
 - `schema-integrity.test.ts`: return-segment schema and migration constraints
+- `upload-body.test.ts`: streaming request-size boundary behavior
+- `integration/`: real PostgreSQL, constraints, concurrency, backups, QR, and lifecycle tests
+- `e2e/`: complete organizer and traveler browser workflow
 
 ## Commands
 
 ```powershell
 npm test
+npm run test:integration
+npm run test:e2e
+npm run test:extended
 npm run lint
 npm run build
 ```
+
+`test:integration` and `test:e2e` require a local PostgreSQL server reachable through `DATABASE_URL`. The runner creates a uniquely named database, applies every migration, and drops the database after the suite. Install the browser once with `npx playwright install chromium`.

@@ -3,12 +3,14 @@ import { jsonRequest, routeParams } from "./helpers";
 
 const mocks = vi.hoisted(() => ({
   getOwnedTripId: vi.fn(), transaction: vi.fn(),
+  queryRaw: vi.fn(),
   segmentFindFirst: vi.fn(), segmentUpdate: vi.fn(),
   itineraryFindFirst: vi.fn(), itineraryUpdateMany: vi.fn(),
   tripFindUnique: vi.fn(), updateCreate: vi.fn(), updateFindFirst: vi.fn(), updateFindMany: vi.fn(), updateUpdate: vi.fn(), updateDelete: vi.fn(),
 }));
 
 const tx = {
+  $queryRaw: mocks.queryRaw,
   travelSegment: { findFirst: mocks.segmentFindFirst, update: mocks.segmentUpdate },
   itineraryItem: { findFirst: mocks.itineraryFindFirst, updateMany: mocks.itineraryUpdateMany },
   trip: { findUnique: mocks.tripFindUnique },

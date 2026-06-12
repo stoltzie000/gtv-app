@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import { isDateWithinTrip, parseDateOnly, parseText, tripDateRangeError } from "@/lib/trips";
@@ -71,6 +71,14 @@ function scheduleTarget(link: UpdateLink) {
     : link.itineraryItemId
       ? { itineraryItemId: link.itineraryItemId }
       : null;
+}
+
+async function lockScheduleTarget(tx: Prisma.TransactionClient, tripId: number, link: UpdateLink) {
+  if (link.travelSegmentId) {
+    await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "TravelSegment" WHERE "id" = ${link.travelSegmentId} AND "tripId" = ${tripId} FOR UPDATE`);
+  } else if (link.itineraryItemId) {
+    await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "ItineraryItem" WHERE "id" = ${link.itineraryItemId} AND "tripId" = ${tripId} FOR UPDATE`);
+  }
 }
 
 async function currentSchedule(tx: Prisma.TransactionClient, tripId: number, link: UpdateLink) {
@@ -170,6 +178,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (schedule.updateKind !== "SCHEDULE_CHANGE") {
         return tx.tripUpdate.create({ data: { tripId, title, content, ...link, updateKind: schedule.updateKind } });
       }
+      await lockScheduleTarget(tx, tripId, link);
       const original = await currentSchedule(tx, tripId, link);
       if (!original) return null;
       const created = await tx.tripUpdate.create({
@@ -236,6 +245,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         await tx.tripUpdate.update({ where: { id: updateId }, data: { title, content, updateKind: schedule.updateKind } });
         return true;
       }
+      await lockScheduleTarget(tx, tripId, link);
       await tx.tripUpdate.update({
         where: { id: updateId },
         data: {
@@ -284,6 +294,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         sourceTravelSegmentId: update.sourceTravelSegmentId,
         itineraryItemId: update.itineraryItemId,
       };
+      await lockScheduleTarget(tx, tripId, link);
       const target = scheduleTarget(link);
       if (!target) {
         await tx.tripUpdate.delete({ where: { id: update.id } });
