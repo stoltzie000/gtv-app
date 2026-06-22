@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import { detectUploadType } from "@/lib/file-validation";
@@ -13,6 +12,7 @@ import {
 import { readLimitedBody } from "@/lib/upload-body";
 
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+type TransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
 export async function POST(
   request: Request,
@@ -67,7 +67,7 @@ export async function POST(
     data: fileData,
   };
   try {
-    const media = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const media = await prisma.$transaction(async (tx: TransactionClient) => {
       const [documents, photos] = await Promise.all([
         tx.tripDocument.aggregate({
           where: { tripId: owned.tripId! },

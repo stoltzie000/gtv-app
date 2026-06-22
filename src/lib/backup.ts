@@ -12,12 +12,12 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { daysAgo } from "@/lib/platform";
 
 const BACKUP_PREFIX = "gtv-backups/";
 const BACKUP_PAGE_SIZE = 100;
+type TransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
 function getStorage() {
   const bucket = process.env.BACKUP_S3_BUCKET;
@@ -88,7 +88,7 @@ async function streamDatabaseBackup(filePath: string) {
   const output = pipeline(gzip, createWriteStream(filePath));
 
   try {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       await writeChunk(gzip, `{"format":"gtv-logical-backup-v1","createdAt":${JSON.stringify(new Date().toISOString())},"data":{`);
       await writeTable(gzip, "users", (cursor) => tx.user.findMany(page(cursor)), true);
       await writeTable(gzip, "trips", (cursor) => tx.trip.findMany(page(cursor)), false);

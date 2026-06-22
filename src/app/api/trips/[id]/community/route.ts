@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import { isDateWithinTrip, parseDateOnly, parseText, tripDateRangeError } from "@/lib/trips";
@@ -7,6 +6,7 @@ import { applyScheduleFields } from "@/lib/schedule";
 
 const UPDATE_TYPES = ["GENERAL", "TRAVEL", "ITINERARY"] as const;
 const UPDATE_KINDS = ["INFORMATIONAL", "SCHEDULE_CHANGE"] as const;
+type TransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
 async function parseUpdateLink(tripId: number, body: Record<string, unknown>) {
   const updateType = UPDATE_TYPES.includes(body.updateType as typeof UPDATE_TYPES[number])
@@ -73,7 +73,7 @@ function scheduleTarget(link: UpdateLink) {
       : null;
 }
 
-async function lockScheduleTarget(tx: Prisma.TransactionClient, tripId: number, link: UpdateLink) {
+async function lockScheduleTarget(tx: TransactionClient, tripId: number, link: UpdateLink) {
   if (link.travelSegmentId) {
     await tx.$queryRawUnsafe('SELECT "id" FROM "TravelSegment" WHERE "id" = $1 AND "tripId" = $2 FOR UPDATE', link.travelSegmentId, tripId);
   } else if (link.itineraryItemId) {
@@ -81,7 +81,7 @@ async function lockScheduleTarget(tx: Prisma.TransactionClient, tripId: number, 
   }
 }
 
-async function currentSchedule(tx: Prisma.TransactionClient, tripId: number, link: UpdateLink) {
+async function currentSchedule(tx: TransactionClient, tripId: number, link: UpdateLink) {
   if (link.travelSegmentId) {
     return tx.travelSegment.findFirst({ where: { id: link.travelSegmentId, tripId }, select: { date: true, time: true } });
   }
@@ -92,7 +92,7 @@ async function currentSchedule(tx: Prisma.TransactionClient, tripId: number, lin
 }
 
 async function applyFinalSchedule(
-  tx: Prisma.TransactionClient,
+  tx: TransactionClient,
   tripId: number,
   link: UpdateLink,
   date: Date | null,
@@ -122,7 +122,7 @@ async function applyFinalSchedule(
 }
 
 async function reflowScheduleChanges(
-  tx: Prisma.TransactionClient,
+  tx: TransactionClient,
   tripId: number,
   link: UpdateLink,
   base?: { date: Date | null; time: string | null }
@@ -174,7 +174,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!title || !content || !link || !schedule) return NextResponse.json({ error: "Title, update details, and affected item are required" }, { status: 400 });
     const dateError = await scheduleDateError(tripId, schedule);
     if (dateError) return NextResponse.json({ error: dateError }, { status: dateError === "Trip not found" ? 404 : 400 });
-    const update = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const update = await prisma.$transaction(async (tx: TransactionClient) => {
       if (schedule.updateKind !== "SCHEDULE_CHANGE") {
         return tx.tripUpdate.create({ data: { tripId, title, content, ...link, updateKind: schedule.updateKind } });
       }
@@ -235,7 +235,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!Number.isInteger(updateId) || !title || !content || !link || !schedule) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
     const dateError = await scheduleDateError(tripId, schedule);
     if (dateError) return NextResponse.json({ error: dateError }, { status: dateError === "Trip not found" ? 404 : 400 });
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx: TransactionClient) => {
       const existing = await tx.tripUpdate.findFirst({ where: { id: updateId, tripId } });
       if (!existing) return null;
       if (existing.updateType !== link.updateType
@@ -283,7 +283,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const body = await request.json().catch(() => null);
   const updateId = Number(body?.updateId);
   if (!Number.isInteger(updateId)) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
-  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const result = await prisma.$transaction(async (tx: TransactionClient) => {
     const update = await tx.tripUpdate.findFirst({ where: { id: updateId, tripId } });
     if (!update) return false;
 
