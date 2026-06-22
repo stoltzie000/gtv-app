@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { DbNull } from "@prisma/client/runtime/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import {
@@ -13,8 +12,6 @@ import {
 import { parseTripSummary } from "@/lib/trip-summary";
 
 type TransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
-type TripUpdateData = Parameters<typeof prisma.trip.update>[0]["data"];
-const dbNullTripSummary = DbNull as unknown as TripUpdateData["tripSummary"];
 
 async function ownedId(params: Promise<{ id: string }>) {
   const id = Number((await params).id);
@@ -64,10 +61,14 @@ export async function PATCH(
     if (body.entries !== null && !tripSummary) {
       return NextResponse.json({ error: "Enter valid trip summary milestones" }, { status: 400 });
     }
-    await prisma.trip.update({
-      where: { id: tripId },
-      data: { tripSummary: tripSummary ?? dbNullTripSummary },
-    });
+    if (tripSummary) {
+      await prisma.trip.update({
+        where: { id: tripId },
+        data: { tripSummary },
+      });
+    } else {
+      await prisma.$executeRaw`UPDATE "Trip" SET "tripSummary" = NULL WHERE "id" = ${tripId}`;
+    }
   } else if (body.action === "travel") {
     const startLocation = parseText(body.startLocation);
     const destination = parseText(body.destination);
