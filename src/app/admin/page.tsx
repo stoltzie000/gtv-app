@@ -95,10 +95,15 @@ export default async function AdminPage() {
   ]);
 
   const storageBytes = (documentStorage._sum.size ?? 0) + (photoStorage._sum.size ?? 0);
-  const metrics = [
-    ["Total accounts", totalAccounts], ["Draft trips", draftTrips], ["Published trips", publishedTrips],
-    ["Active trips", activeTrips], ["Completed trips", completedTrips], ["QR scans", viewTotals._sum.qrScanCount ?? 0],
-    ["Traveler views", viewTotals._sum.travelerViewCount ?? 0], ["Poll votes", pollVotes],
+  const metrics: Array<[string, number]> = [
+    ["Total accounts", totalAccounts],
+    ["Draft trips", draftTrips],
+    ["Published trips", publishedTrips],
+    ["Active trips", activeTrips],
+    ["Completed trips", completedTrips],
+    ["QR scans", viewTotals._sum.qrScanCount ?? 0],
+    ["Traveler views", viewTotals._sum.travelerViewCount ?? 0],
+    ["Poll votes", pollVotes],
   ];
 
   return (
@@ -106,7 +111,12 @@ export default async function AdminPage() {
       <h1 className="text-4xl font-bold mb-8">GTV Admin Dashboard</h1>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {metrics.map(([label, value]) => <div className="border rounded p-4" key={label}><p className="text-sm text-gray-600">{label}</p><p className="text-3xl font-bold">{value}</p></div>)}
+        {metrics.map(([label, value]) => (
+          <div className="border rounded p-4" key={label}>
+            <p className="text-sm text-gray-600">{label}</p>
+            <p className="text-3xl font-bold">{value}</p>
+          </div>
+        ))}
       </section>
 
       <section className="border rounded p-6 mb-8">
@@ -146,8 +156,32 @@ export default async function AdminPage() {
       </section>
 
       <section className="grid lg:grid-cols-2 gap-8">
-        <div className="border rounded p-6"><h2 className="text-xl font-bold mb-4">Pending Trips</h2><div className="grid gap-3">{pendingTrips.map((trip: PendingTrip) => <div className="border-b pb-2" key={trip.id}><p className="font-semibold">#{trip.id} {trip.tripName}</p><p className="text-sm">Last activity: {trip.lastActivityAt.toLocaleDateString()} | End date: {trip.endDate.toLocaleDateString()}</p></div>)}</div></div>
-        <div className="border rounded p-6"><h2 className="text-xl font-bold mb-4">Pending Accounts</h2><div className="grid gap-3">{pendingAccounts.map((account: PendingAccount) => <div className="border-b pb-2" key={account.id}><p className="font-semibold">{account.email}</p><p className="text-sm">Last activity: {account.lastActivityAt.toLocaleDateString()} | {account.deletionRequestedAt ? "Deletion requested" : account.inactiveAt ? "Inactive" : "Due inactive"}</p></div>)}</div></div>
+        <div className="border rounded p-6">
+          <h2 className="text-xl font-bold mb-4">Pending Trips</h2>
+          <div className="grid gap-3">
+            {pendingTrips.map((trip: PendingTrip) => (
+              <div className="border-b pb-2" key={trip.id}>
+                <p className="font-semibold">#{trip.id} {trip.tripName}</p>
+                <p className="text-sm">
+                  Last activity: {trip.lastActivityAt.toLocaleDateString()} | End date: {trip.endDate.toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="border rounded p-6">
+          <h2 className="text-xl font-bold mb-4">Pending Accounts</h2>
+          <div className="grid gap-3">
+            {pendingAccounts.map((account: PendingAccount) => (
+              <div className="border-b pb-2" key={account.id}>
+                <p className="font-semibold">{account.email}</p>
+                <p className="text-sm">
+                  Last activity: {account.lastActivityAt.toLocaleDateString()} | {account.deletionRequestedAt ? "Deletion requested" : account.inactiveAt ? "Inactive" : "Due inactive"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );
