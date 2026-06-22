@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { BackupRun } from "@prisma/client";
 import { verifyAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { daysAgo, DOCUMENT_LIMIT, PHOTO_LIMIT, TRIP_STORAGE_LIMIT } from "@/lib/platform";
@@ -15,6 +16,7 @@ export default async function AdminPage() {
   const reminderCutoff = daysAgo(15, now);
   const deleteCutoff = daysAgo(30, now);
   const accountCutoff = daysAgo(365, now);
+  const backupRunQuery: Promise<BackupRun[]> = prisma.backupRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 });
 
   const [
     totalAccounts,
@@ -61,7 +63,7 @@ export default async function AdminPage() {
       orderBy: { lastActivityAt: "asc" },
       take: 50,
     }),
-    prisma.backupRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 }),
+    backupRunQuery,
   ]);
 
   const storageBytes = (documentStorage._sum.size ?? 0) + (photoStorage._sum.size ?? 0);
@@ -102,7 +104,7 @@ export default async function AdminPage() {
         <h2 className="text-2xl font-bold mb-4">Backup Status</h2>
         {backupRuns.length ? (
           <div className="grid gap-3">
-            {backupRuns.map((backup) => (
+            {backupRuns.map((backup: BackupRun) => (
               <div className="border-b pb-2" key={backup.id}>
                 <p><strong>{backup.status}</strong> - {backup.startedAt.toLocaleString()}</p>
                 <p className="text-sm text-gray-600">
