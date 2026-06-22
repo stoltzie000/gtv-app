@@ -1,8 +1,17 @@
 import { notFound } from "next/navigation";
-import type { BackupRun } from "@prisma/client";
 import { verifyAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { daysAgo, DOCUMENT_LIMIT, PHOTO_LIMIT, TRIP_STORAGE_LIMIT } from "@/lib/platform";
+
+type BackupRun = {
+  id: number;
+  status: string;
+  startedAt: Date;
+  completedAt: Date | null;
+  storageKey: string | null;
+  fileSizeBytes: number | null;
+  errorMessage: string | null;
+};
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
@@ -16,7 +25,7 @@ export default async function AdminPage() {
   const reminderCutoff = daysAgo(15, now);
   const deleteCutoff = daysAgo(30, now);
   const accountCutoff = daysAgo(365, now);
-  const backupRunQuery: Promise<BackupRun[]> = prisma.backupRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 });
+  const backupRunQuery = prisma.backupRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 }) as unknown as Promise<BackupRun[]>;
 
   const [
     totalAccounts,
@@ -108,8 +117,8 @@ export default async function AdminPage() {
               <div className="border-b pb-2" key={backup.id}>
                 <p><strong>{backup.status}</strong> - {backup.startedAt.toLocaleString()}</p>
                 <p className="text-sm text-gray-600">
-                  {backup.objectKey ?? backup.error ?? "Backup in progress"}
-                  {backup.size ? ` (${formatBytes(backup.size)})` : ""}
+                  {backup.storageKey ?? backup.errorMessage ?? "Backup in progress"}
+                  {backup.fileSizeBytes ? ` (${formatBytes(backup.fileSizeBytes)})` : ""}
                 </p>
               </div>
             ))}
