@@ -13,6 +13,23 @@ type BackupRun = {
   errorMessage: string | null;
 };
 
+type PendingTrip = {
+  id: number;
+  tripName: string;
+  isPublished: boolean;
+  lastActivityAt: Date;
+  endDate: Date;
+  draftReminderAt: Date | null;
+};
+
+type PendingAccount = {
+  id: number;
+  email: string;
+  lastActivityAt: Date;
+  inactiveAt: Date | null;
+  deletionRequestedAt: Date | null;
+};
+
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -26,6 +43,18 @@ export default async function AdminPage() {
   const deleteCutoff = daysAgo(30, now);
   const accountCutoff = daysAgo(365, now);
   const backupRunQuery = prisma.backupRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 }) as unknown as Promise<BackupRun[]>;
+  const pendingTripsQuery = prisma.trip.findMany({
+    where: { OR: [{ isPublished: false, lastActivityAt: { lte: reminderCutoff } }, { endDate: { lte: deleteCutoff } }] },
+    select: { id: true, tripName: true, isPublished: true, lastActivityAt: true, endDate: true, draftReminderAt: true },
+    orderBy: { lastActivityAt: "asc" },
+    take: 50,
+  }) as unknown as Promise<PendingTrip[]>;
+  const pendingAccountsQuery = prisma.user.findMany({
+    where: { OR: [{ lastActivityAt: { lte: accountCutoff } }, { deletionRequestedAt: { not: null } }] },
+    select: { id: true, email: true, lastActivityAt: true, inactiveAt: true, deletionRequestedAt: true },
+    orderBy: { lastActivityAt: "asc" },
+    take: 50,
+  }) as unknown as Promise<PendingAccount[]>;
 
   const [
     totalAccounts,
@@ -60,18 +89,8 @@ export default async function AdminPage() {
     prisma.trip.count({ where: { endDate: { lte: deleteCutoff } } }),
     prisma.user.count({ where: { lastActivityAt: { lte: accountCutoff }, inactivityWarningAt: { not: null } } }),
     prisma.user.count({ where: { deletionRequestedAt: { not: null } } }),
-    prisma.trip.findMany({
-      where: { OR: [{ isPublished: false, lastActivityAt: { lte: reminderCutoff } }, { endDate: { lte: deleteCutoff } }] },
-      select: { id: true, tripName: true, isPublished: true, lastActivityAt: true, endDate: true, draftReminderAt: true },
-      orderBy: { lastActivityAt: "asc" },
-      take: 50,
-    }),
-    prisma.user.findMany({
-      where: { OR: [{ lastActivityAt: { lte: accountCutoff } }, { deletionRequestedAt: { not: null } }] },
-      select: { id: true, email: true, lastActivityAt: true, inactiveAt: true, deletionRequestedAt: true },
-      orderBy: { lastActivityAt: "asc" },
-      take: 50,
-    }),
+    pendingTripsQuery,
+    pendingAccountsQuery,
     backupRunQuery,
   ]);
 
@@ -127,8 +146,8 @@ export default async function AdminPage() {
       </section>
 
       <section className="grid lg:grid-cols-2 gap-8">
-        <div className="border rounded p-6"><h2 className="text-xl font-bold mb-4">Pending Trips</h2><div className="grid gap-3">{pendingTrips.map((trip) => <div className="border-b pb-2" key={trip.id}><p className="font-semibold">#{trip.id} {trip.tripName}</p><p className="text-sm">Last activity: {trip.lastActivityAt.toLocaleDateString()} | End date: {trip.endDate.toLocaleDateString()}</p></div>)}</div></div>
-        <div className="border rounded p-6"><h2 className="text-xl font-bold mb-4">Pending Accounts</h2><div className="grid gap-3">{pendingAccounts.map((account) => <div className="border-b pb-2" key={account.id}><p className="font-semibold">{account.email}</p><p className="text-sm">Last activity: {account.lastActivityAt.toLocaleDateString()} | {account.deletionRequestedAt ? "Deletion requested" : account.inactiveAt ? "Inactive" : "Due inactive"}</p></div>)}</div></div>
+        <div className="border rounded p-6"><h2 className="text-xl font-bold mb-4">Pending Trips</h2><div className="grid gap-3">{pendingTrips.map((trip: PendingTrip) => <div className="border-b pb-2" key={trip.id}><p className="font-semibold">#{trip.id} {trip.tripName}</p><p className="text-sm">Last activity: {trip.lastActivityAt.toLocaleDateString()} | End date: {trip.endDate.toLocaleDateString()}</p></div>)}</div></div>
+        <div className="border rounded p-6"><h2 className="text-xl font-bold mb-4">Pending Accounts</h2><div className="grid gap-3">{pendingAccounts.map((account: PendingAccount) => <div className="border-b pb-2" key={account.id}><p className="font-semibold">{account.email}</p><p className="text-sm">Last activity: {account.lastActivityAt.toLocaleDateString()} | {account.deletionRequestedAt ? "Deletion requested" : account.inactiveAt ? "Inactive" : "Due inactive"}</p></div>)}</div></div>
       </section>
     </main>
   );
