@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnedTripId } from "@/lib/trip-access";
 import { isDateWithinTrip, parseDateOnly, parseText, tripDateRangeError } from "@/lib/trips";
@@ -7,6 +6,7 @@ import { applyScheduleFields } from "@/lib/schedule";
 
 const UPDATE_TYPES = ["GENERAL", "TRAVEL", "ITINERARY"] as const;
 const UPDATE_KINDS = ["INFORMATIONAL", "SCHEDULE_CHANGE"] as const;
+type TransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
 async function parseUpdateLink(tripId: number, body: Record<string, unknown>) {
   const updateType = UPDATE_TYPES.includes(body.updateType as typeof UPDATE_TYPES[number])
@@ -73,15 +73,15 @@ function scheduleTarget(link: UpdateLink) {
       : null;
 }
 
-async function lockScheduleTarget(tx: Prisma.TransactionClient, tripId: number, link: UpdateLink) {
+async function lockScheduleTarget(tx: TransactionClient, tripId: number, link: UpdateLink) {
   if (link.travelSegmentId) {
-    await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "TravelSegment" WHERE "id" = ${link.travelSegmentId} AND "tripId" = ${tripId} FOR UPDATE`);
+    await tx.$queryRawUnsafe('SELECT "id" FROM "TravelSegment" WHERE "id" = $1 AND "tripId" = $2 FOR UPDATE', link.travelSegmentId, tripId);
   } else if (link.itineraryItemId) {
-    await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "ItineraryItem" WHERE "id" = ${link.itineraryItemId} AND "tripId" = ${tripId} FOR UPDATE`);
+    await tx.$queryRawUnsafe('SELECT "id" FROM "ItineraryItem" WHERE "id" = $1 AND "tripId" = $2 FOR UPDATE', link.itineraryItemId, tripId);
   }
 }
 
-async function currentSchedule(tx: Prisma.TransactionClient, tripId: number, link: UpdateLink) {
+async function currentSchedule(tx: TransactionClient, tripId: number, link: UpdateLink) {
   if (link.travelSegmentId) {
     return tx.travelSegment.findFirst({ where: { id: link.travelSegmentId, tripId }, select: { date: true, time: true } });
   }
@@ -92,7 +92,7 @@ async function currentSchedule(tx: Prisma.TransactionClient, tripId: number, lin
 }
 
 async function applyFinalSchedule(
-  tx: Prisma.TransactionClient,
+  tx: TransactionClient,
   tripId: number,
   link: UpdateLink,
   date: Date | null,
@@ -122,7 +122,7 @@ async function applyFinalSchedule(
 }
 
 async function reflowScheduleChanges(
-  tx: Prisma.TransactionClient,
+  tx: TransactionClient,
   tripId: number,
   link: UpdateLink,
   base?: { date: Date | null; time: string | null }
