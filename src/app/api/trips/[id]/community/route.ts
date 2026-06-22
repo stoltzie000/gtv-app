@@ -174,7 +174,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!title || !content || !link || !schedule) return NextResponse.json({ error: "Title, update details, and affected item are required" }, { status: 400 });
     const dateError = await scheduleDateError(tripId, schedule);
     if (dateError) return NextResponse.json({ error: dateError }, { status: dateError === "Trip not found" ? 404 : 400 });
-    const update = await prisma.$transaction(async (tx) => {
+    const update = await prisma.$transaction(async (tx: TransactionClient) => {
       if (schedule.updateKind !== "SCHEDULE_CHANGE") {
         return tx.tripUpdate.create({ data: { tripId, title, content, ...link, updateKind: schedule.updateKind } });
       }
@@ -235,7 +235,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!Number.isInteger(updateId) || !title || !content || !link || !schedule) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
     const dateError = await scheduleDateError(tripId, schedule);
     if (dateError) return NextResponse.json({ error: dateError }, { status: dateError === "Trip not found" ? 404 : 400 });
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: TransactionClient) => {
       const existing = await tx.tripUpdate.findFirst({ where: { id: updateId, tripId } });
       if (!existing) return null;
       if (existing.updateType !== link.updateType
@@ -283,7 +283,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const body = await request.json().catch(() => null);
   const updateId = Number(body?.updateId);
   if (!Number.isInteger(updateId)) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: TransactionClient) => {
     const update = await tx.tripUpdate.findFirst({ where: { id: updateId, tripId } });
     if (!update) return false;
 
