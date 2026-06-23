@@ -272,7 +272,7 @@ export function TripSections(props: TripSectionsProps) {
           <form className="flex flex-wrap items-start gap-3 mb-5" onSubmit={(event) => upload(event, kind)}>
             <div>
               <input
-                accept={kind === "documents" ? "application/pdf" : "image/jpeg,image/png,image/webp,image/gif"}
+                accept={kind === "documents" ? "application/pdf" : "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/avif"}
                 className="peer sr-only"
                 id={`${kind}-file`}
                 name="file"

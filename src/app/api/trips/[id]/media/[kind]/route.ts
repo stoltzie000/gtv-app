@@ -11,7 +11,7 @@ import {
 } from "@/lib/platform";
 import { readLimitedBody } from "@/lib/upload-body";
 
-const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif", "image/avif"]);
 type TransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
 export async function POST(
@@ -56,7 +56,7 @@ export async function POST(
     return NextResponse.json({ error: "Document must be a valid PDF file" }, { status: 400 });
   }
   if (isPhoto && (!detectedType || !PHOTO_TYPES.has(detectedType))) {
-    return NextResponse.json({ error: "Photo must be a valid JPEG, PNG, WebP, or GIF file" }, { status: 400 });
+    return NextResponse.json({ error: "Photo must be a valid JPEG, PNG, WebP, GIF, HEIC, HEIF, or AVIF file" }, { status: 400 });
   }
 
   const record = {
