@@ -1,6 +1,24 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
+let rateLimitTableReady: Promise<void> | null = null;
+
+function ensureRateLimitTable() {
+  rateLimitTableReady ??= prisma.$executeRaw`
+    CREATE TABLE IF NOT EXISTS "RateLimitBucket" (
+      "id" SERIAL NOT NULL,
+      "key" TEXT NOT NULL,
+      "count" INTEGER NOT NULL,
+      "resetAt" TIMESTAMP(3) NOT NULL,
+      CONSTRAINT "RateLimitBucket_pkey" PRIMARY KEY ("id")
+    )
+  `.then(async () => {
+    await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "RateLimitBucket_key_key" ON "RateLimitBucket"("key")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "RateLimitBucket_resetAt_idx" ON "RateLimitBucket"("resetAt")`;
+  });
+  return rateLimitTableReady;
+}
+
 export function requestIp(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
@@ -11,6 +29,7 @@ export function rateLimitIdentity(value: string) {
 }
 
 export async function checkRateLimit(key: string, limit: number, windowMs: number) {
+  await ensureRateLimitTable();
   const now = Date.now();
   const resetAt = new Date(now + windowMs);
   const [entry] = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
@@ -32,9 +51,11 @@ export async function checkRateLimit(key: string, limit: number, windowMs: numbe
 }
 
 export async function clearRateLimit(key: string) {
+  await ensureRateLimitTable();
   await prisma.rateLimitBucket.deleteMany({ where: { key } });
 }
 
 export async function cleanExpiredRateLimits() {
+  await ensureRateLimitTable();
   await prisma.rateLimitBucket.deleteMany({ where: { resetAt: { lte: new Date() } } });
 }
