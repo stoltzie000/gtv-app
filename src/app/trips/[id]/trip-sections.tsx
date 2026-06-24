@@ -40,6 +40,8 @@ export function TripSections(props: TripSectionsProps) {
   const [selectedFiles, setSelectedFiles] = useState<Record<"documents" | "photos", string>>({ documents: "", photos: "" });
   const pending = Boolean(pendingAction);
   const endpoint = `/api/trips/${props.tripId}/sections`;
+  const canGenerateSummary = props.generatedTripSummary.length > 0;
+  const hasGeneratedSummary = tripSummary.length > 0;
 
   async function jsonRequest(method: string, body: Record<string, unknown>, successMessage: string, scope: NoticeScope = "global", target?: string) {
     setNotice(null);
@@ -121,9 +123,15 @@ export function TripSections(props: TripSectionsProps) {
     if (saved) setTripSummary(entries);
   }
 
-  async function regenerateTripSummary() {
-    const saved = await jsonRequest("PATCH", { action: "tripSummary", entries: null }, "Trip summary regenerated.", "overview");
+  async function generateTripSummary(successMessage = "Trip summary generated.") {
+    if (!canGenerateSummary) return;
+    const saved = await jsonRequest("PATCH", { action: "tripSummary", entries: props.generatedTripSummary }, successMessage, "overview");
     if (saved) setTripSummary(props.generatedTripSummary);
+  }
+
+  async function clearTripSummary() {
+    const saved = await jsonRequest("PATCH", { action: "tripSummary", entries: null }, "Trip summary cleared.", "overview");
+    if (saved) setTripSummary([]);
   }
 
   async function populateItinerary(mode: "add" | "replace", confirm: boolean) {
@@ -207,9 +215,25 @@ export function TripSections(props: TripSectionsProps) {
           <button className="bg-blue-600 text-white px-4 py-2 rounded w-fit" disabled={pending}>Save Overview</button>
         </form>
         <div className="mt-6 border-t pt-5">
-          <div className="flex flex-wrap items-start justify-between gap-3 mb-3"><div><h3 className="text-xl font-bold">Trip Summary</h3><p className="text-sm text-gray-600">Major daily milestones derived from Travel and Itinerary. Edit the generated wording as needed.</p></div>{props.tripSummaryIsCustom && <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">Customized</span>}</div>
-          <div className="grid gap-3">{tripSummary.map((entry, index) => <div className="grid gap-2 sm:grid-cols-[9rem_1fr_auto]" key={`${entry.date}-${index}`}><input aria-label={`Summary date ${index + 1}`} className="border p-2 rounded" onChange={(event) => setTripSummary((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, date: event.target.value } : item))} type="date" value={entry.date} /><input aria-label={`Summary milestone ${index + 1}`} className="border p-2 rounded" maxLength={120} onChange={(event) => setTripSummary((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} value={entry.title} /><button className="text-red-600 px-2" disabled={pending} onClick={() => setTripSummary((current) => current.filter((_, itemIndex) => itemIndex !== index))} type="button">Remove</button></div>)}</div>
-          <div className="flex flex-wrap gap-3 mt-4"><button className="border px-4 py-2 rounded" disabled={pending} onClick={() => setTripSummary((current) => [...current, { date: current.at(-1)?.date ?? props.generatedTripSummary.at(-1)?.date ?? "", title: "" }])} type="button">Add Milestone</button><button className="bg-blue-600 text-white px-4 py-2 rounded" disabled={pending || tripSummary.some((entry) => !entry.date || !entry.title.trim())} onClick={saveTripSummary} type="button">Save Trip Summary</button><button className="border px-4 py-2 rounded" disabled={pending} onClick={regenerateTripSummary} type="button">Regenerate from Travel &amp; Itinerary</button></div>
+          {!hasGeneratedSummary ? (
+            <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">Trip Summary</h3>
+                  <p className="text-sm text-gray-600">Auto-generated from your Travel and Itinerary information.</p>
+                </div>
+                <span className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700">Read-only until generated</span>
+              </div>
+              <p className="mb-4 text-sm text-gray-700">Complete your Travel and Itinerary sections, then click Generate Summary.</p>
+              <button className="border px-4 py-2 rounded disabled:cursor-not-allowed disabled:opacity-50" disabled={pending || !canGenerateSummary} onClick={() => generateTripSummary()} type="button">Generate Summary</button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-3"><div><h3 className="text-xl font-bold">Trip Summary</h3><p className="text-sm text-gray-600">Auto-generated from Travel and Itinerary. Review it, then edit any milestone before publishing.</p></div><span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">{props.tripSummaryIsCustom ? "Saved summary" : "Auto-generated draft"}</span></div>
+              <div className="grid gap-3">{tripSummary.map((entry, index) => <div className="grid gap-2 sm:grid-cols-[9rem_1fr_auto]" key={`${entry.date}-${index}`}><input aria-label={`Summary date ${index + 1}`} className="border p-2 rounded" onChange={(event) => setTripSummary((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, date: event.target.value } : item))} type="date" value={entry.date} /><input aria-label={`Summary milestone ${index + 1}`} className="border p-2 rounded" maxLength={120} onChange={(event) => setTripSummary((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} value={entry.title} /><button className="text-red-600 px-2" disabled={pending} onClick={() => setTripSummary((current) => current.filter((_, itemIndex) => itemIndex !== index))} type="button">Remove</button></div>)}</div>
+              <div className="flex flex-wrap gap-3 mt-4"><button className="border px-4 py-2 rounded" disabled={pending} onClick={() => setTripSummary((current) => [...current, { date: current.at(-1)?.date ?? props.generatedTripSummary.at(-1)?.date ?? "", title: "" }])} type="button">Add Milestone</button><button className="bg-blue-600 text-white px-4 py-2 rounded" disabled={pending || tripSummary.some((entry) => !entry.date || !entry.title.trim())} onClick={saveTripSummary} type="button">Save Trip Summary</button><button className="border px-4 py-2 rounded" disabled={pending || !canGenerateSummary} onClick={() => generateTripSummary("Trip summary regenerated.")} type="button">Regenerate Summary</button><button className="text-red-600 px-2" disabled={pending} onClick={clearTripSummary} type="button">Clear Summary</button></div>
+            </div>
+          )}
         </div>
       </section>
 

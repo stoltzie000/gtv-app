@@ -100,7 +100,9 @@ export default async function TripDetailPage({
     itineraryItems: trip.itineraryItems,
     travelSegments: trip.travelSegments,
   };
-  const generatedTripSummary = deriveTripSummary(summarySource);
+  const hasSummarySource = trip.travelSegments.some((segment: TravelSegmentRow) => Boolean(segment.date))
+    || trip.itineraryItems.length > 0;
+  const generatedTripSummary = hasSummarySource ? deriveTripSummary(summarySource) : [];
   const savedTripSummary = parseTripSummary(trip.tripSummary);
 
   return (
@@ -144,6 +146,7 @@ export default async function TripDetailPage({
       <nav aria-label="Trip sections" className="mt-6 flex flex-wrap gap-3 text-sm">
         {["overview", "updates", "travel", "itinerary", "documents", "photos", "polls"].map((section) => <a className="text-blue-700 hover:underline capitalize" href={`#${section}`} key={section}>{section}</a>)}
       </nav>
+      <p className="mt-3 text-sm text-gray-600">Recommended workflow: Overview → Travel → Itinerary → Generate Summary → Publish.</p>
       <TripSections
         description={trip.description}
         destination={trip.destination}
@@ -157,7 +160,7 @@ export default async function TripDetailPage({
         startLocation={trip.startLocation}
         tripStartDate={trip.startDate.toISOString().slice(0, 10)}
         tripEndDate={trip.endDate.toISOString().slice(0, 10)}
-        tripSummary={savedTripSummary ?? generatedTripSummary}
+        tripSummary={savedTripSummary ?? []}
         tripSummaryIsCustom={savedTripSummary !== null}
         generatedTripSummary={generatedTripSummary}
         tripId={trip.id}
