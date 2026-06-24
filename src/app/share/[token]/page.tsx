@@ -19,7 +19,7 @@ export default async function PublicTripPage({ params, searchParams }: { params:
   const [{ now }] = await prisma.$queryRaw<Array<{ now: Date }>>`SELECT NOW() AS now`;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-gray-50 p-4 text-gray-900 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <TravelerTripView initialNow={now.getTime()} trip={trip} publicToken={token} readOnly={false} />
       </div>

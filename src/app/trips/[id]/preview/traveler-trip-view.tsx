@@ -73,49 +73,49 @@ export function TravelerTripView({ trip, publicToken, readOnly, initialNow }: { 
   };
   const generalUpdates = updates.filter((update) => update.updateType === "GENERAL");
   const renderSegments = (segments: TravelerTrip["travelSegments"]) => segments.length
-    ? <div className="grid gap-3">{segments.map((segment) => { const linkedUpdates = travelUpdates(segment.id); return <div className="border rounded p-4" id={`travel-segment-${segment.id}`} key={segment.id}><div className="flex items-center justify-between gap-3"><p className="text-sm uppercase text-gray-500">{segment.type}</p><LinkedUpdateBadge updates={linkedUpdates} /></div><h3 className="font-semibold">{segment.title}</h3>{(segment.date || segment.time) && <p className="text-sm text-gray-600">{segment.date ? dateFormatter.format(segment.date) : ""}{segment.date && segment.time ? " at " : ""}{segment.time ?? ""}</p>}{(segment.startLocation || segment.destination) && <p>{segment.startLocation || "Start"} to {segment.destination || "Destination"}</p>}{segment.description && <p>{segment.description}</p>}<InlineLinkedUpdates updates={linkedUpdates} /></div>; })}</div>
-    : <p>No travel segments yet.</p>;
+    ? <div className="grid gap-3">{segments.map((segment) => { const linkedUpdates = travelUpdates(segment.id); return <div className="border rounded p-4 text-gray-900" id={`travel-segment-${segment.id}`} key={segment.id}><div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold uppercase text-gray-700">{segment.type}</p><LinkedUpdateBadge updates={linkedUpdates} /></div><h3 className="text-lg font-semibold text-gray-950">{segment.title}</h3>{(segment.date || segment.time) && <p className="text-base text-gray-800">{segment.date ? dateFormatter.format(segment.date) : ""}{segment.date && segment.time ? " at " : ""}{segment.time ?? ""}</p>}{(segment.startLocation || segment.destination) && <p>{segment.startLocation || "Start"} to {segment.destination || "Destination"}</p>}{segment.description && <p className="whitespace-pre-wrap">{segment.description}</p>}<InlineLinkedUpdates updates={linkedUpdates} /></div>; })}</div>
+    : <p className="text-gray-900">No travel segments yet.</p>;
 
   return (
-    <TravelerUpdateProvider initialNow={initialNow}><article className="grid gap-8">
-      <section className="bg-white border rounded-lg p-8 shadow-sm" id="overview">
+    <TravelerUpdateProvider initialNow={initialNow}><article className="grid gap-8 text-base text-gray-900">
+      <section className="bg-white border rounded-lg p-6 shadow-sm sm:p-8" id="overview">
         <div className="mb-3 flex items-center gap-3">
-          <h2 className="text-xl font-bold">Overview</h2>
+          <h2 className="text-xl font-bold text-gray-950">Overview</h2>
           <TripWideUpdateBadge updates={updates} />
         </div>
-        <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">{trip.tripType}</p>
-        <h1 className="text-4xl font-bold mb-3">{trip.tripName}</h1>
+        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-700">{trip.tripType}</p>
+        <h1 className="mb-3 text-4xl font-bold text-gray-950">{trip.tripName}</h1>
         {trip.destination && <p className="text-xl mb-4">{trip.destination}</p>}
         {trip.description && <p className="whitespace-pre-wrap mb-4">{trip.description}</p>}
-        {trip.notes && <p className="whitespace-pre-wrap text-gray-700 mb-4">{trip.notes}</p>}
+        {trip.notes && <p className="whitespace-pre-wrap text-gray-900 mb-4">{trip.notes}</p>}
         <div className="grid gap-6 sm:grid-cols-2">
-          <div><h2 className="font-semibold text-gray-600">Trip Dates</h2><p>Leaves home: {dateFormatter.format(trip.startDate)}<br />Returns home: {dateFormatter.format(trip.endDate)}</p></div>
-          <div><h2 className="font-semibold text-gray-600">Travelers</h2><p>{trip.travelerCount} traveler{trip.travelerCount === 1 ? "" : "s"}</p></div>
+          <div><h2 className="font-semibold text-gray-800">Trip Dates</h2><p>Leaves home: {dateFormatter.format(trip.startDate)}<br />Returns home: {dateFormatter.format(trip.endDate)}</p></div>
+          <div><h2 className="font-semibold text-gray-800">Travelers</h2><p>{trip.travelerCount} traveler{trip.travelerCount === 1 ? "" : "s"}</p></div>
         </div>
-        {tripSummary.length > 0 && <div className="mt-6 border-t pt-5"><h2 className="text-xl font-bold mb-3">Trip Summary</h2><ol className="grid gap-2">{tripSummary.map((entry, index) => <li className="grid gap-1 sm:grid-cols-[7rem_1fr]" key={`${entry.date}-${index}`}><time className="font-semibold" dateTime={entry.date}>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${entry.date}T00:00:00.000Z`))}</time><span>{entry.title}</span></li>)}</ol></div>}
+        {tripSummary.length > 0 && <div className="mt-6 border-t pt-5"><h2 className="text-xl font-bold text-gray-950 mb-3">Trip Summary</h2><ol className="grid gap-2">{tripSummary.map((entry, index) => <li className="grid gap-1 sm:grid-cols-[7rem_1fr]" key={`${entry.date}-${index}`}><time className="font-semibold text-gray-900" dateTime={entry.date}>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${entry.date}T00:00:00.000Z`))}</time><span>{entry.title}</span></li>)}</ol></div>}
       </section>
 
-      {generalUpdates.length > 0 && <section className="bg-white border rounded-lg p-6" id="notices"><h2 className="text-xl font-bold mb-3">Trip Notices</h2><TravelerUpdatesFeed updates={generalUpdates} /></section>}
+      {generalUpdates.length > 0 && <section className="bg-white border rounded-lg p-6 text-gray-900" id="notices"><h2 className="text-xl font-bold text-gray-950 mb-3">Trip Notices</h2><TravelerUpdatesFeed updates={generalUpdates} /></section>}
 
       <nav aria-label="Trip sections" className="flex flex-wrap gap-3 text-sm">
-        {["overview", ...(generalUpdates.length ? ["notices"] : []), "travel", "itinerary", "documents", "photos", "polls"].map((section) => <a className="text-blue-700 hover:underline capitalize" href={`#${section}`} key={section}>{section === "notices" ? "Trip Notices" : section}</a>)}
+        {["overview", ...(generalUpdates.length ? ["notices"] : []), "travel", "itinerary", "documents", "photos", "polls"].map((section) => <a className="font-medium text-blue-800 hover:underline capitalize" href={`#${section}`} key={section}>{section === "notices" ? "Trip Notices" : section}</a>)}
       </nav>
 
-      <section className="bg-white border rounded-lg p-8" id="travel"><h2 className="text-2xl font-bold mb-4">Travel</h2>
+      <section className="bg-white border rounded-lg p-6 sm:p-8" id="travel"><h2 className="text-2xl font-bold text-gray-950 mb-4">Travel</h2>
         {(trip.startLocation || trip.destination) && <p className="mb-4">{trip.startLocation || "Start"} to {trip.destination || "Destination"}</p>}
         {renderSegments(trip.travelSegments)}
       </section>
 
-      <section className="bg-white border rounded-lg p-8" id="itinerary"><h2 className="text-2xl font-bold mb-4">Itinerary</h2>
-        {trip.itineraryItems.length ? <div className="grid gap-4">{trip.itineraryItems.map((item) => { const linkedUpdates = itineraryUpdates(item); return <div className="border-l-4 border-blue-600 pl-4" id={`itinerary-item-${item.id}`} key={item.id}><div className="flex items-center justify-between gap-3"><p className="font-semibold">{dateFormatter.format(item.date)} at {item.time}</p><LinkedUpdateBadge updates={linkedUpdates} /></div><h3 className="text-lg font-semibold">{item.title}</h3>{item.description && <p className="whitespace-pre-wrap">{item.description}</p>}<InlineLinkedUpdates updates={linkedUpdates} /></div>; })}</div> : <p>No itinerary items yet.</p>}
+      <section className="bg-white border rounded-lg p-6 sm:p-8" id="itinerary"><h2 className="text-2xl font-bold text-gray-950 mb-4">Itinerary</h2>
+        {trip.itineraryItems.length ? <div className="grid gap-4">{trip.itineraryItems.map((item) => { const linkedUpdates = itineraryUpdates(item); return <div className="border-l-4 border-blue-600 pl-4 text-gray-900" id={`itinerary-item-${item.id}`} key={item.id}><div className="flex items-center justify-between gap-3"><p className="font-semibold text-gray-900">{dateFormatter.format(item.date)} at {item.time}</p><LinkedUpdateBadge updates={linkedUpdates} /></div><h3 className="text-xl font-semibold text-gray-950">{item.title}</h3>{item.description && <p className="whitespace-pre-wrap">{item.description}</p>}<InlineLinkedUpdates updates={linkedUpdates} /></div>; })}</div> : <p className="text-gray-900">No itinerary items yet.</p>}
       </section>
 
-      <section className="bg-white border rounded-lg p-8" id="documents"><h2 className="text-2xl font-bold mb-4">Documents</h2>
-        {trip.documents.length ? <ul className="grid gap-2">{trip.documents.map((document) => <li key={document.id}><a className="text-blue-700" href={`${mediaBase}/documents/${document.id}`}>{document.name}</a></li>)}</ul> : <p>No documents.</p>}
+      <section className="bg-white border rounded-lg p-6 sm:p-8" id="documents"><h2 className="text-2xl font-bold text-gray-950 mb-4">Documents</h2>
+        {trip.documents.length ? <ul className="grid gap-2">{trip.documents.map((document) => <li key={document.id}><a className="font-medium text-blue-800" href={`${mediaBase}/documents/${document.id}`}>{document.name}</a></li>)}</ul> : <p className="text-gray-900">No documents.</p>}
       </section>
 
-      <section className="bg-white border rounded-lg p-8" id="photos"><h2 className="text-2xl font-bold mb-4">Photos</h2>
-        {trip.photos.length ? <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{trip.photos.map((photo) => <Image alt={photo.name} className="w-full h-40 object-cover rounded" height={160} key={photo.id} src={`${mediaBase}/photos/${photo.id}`} unoptimized width={240} />)}</div> : <p>No photos.</p>}
+      <section className="bg-white border rounded-lg p-6 sm:p-8" id="photos"><h2 className="text-2xl font-bold text-gray-950 mb-4">Photos</h2>
+        {trip.photos.length ? <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{trip.photos.map((photo) => <Image alt={photo.name} className="w-full h-40 object-cover rounded" height={160} key={photo.id} src={`${mediaBase}/photos/${photo.id}`} unoptimized width={240} />)}</div> : <p className="text-gray-900">No photos.</p>}
       </section>
 
       <div id="polls"><TravelerPolls

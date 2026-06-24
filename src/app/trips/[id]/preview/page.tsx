@@ -42,16 +42,16 @@ export default async function TripPreviewPage({
   const [{ now }] = await prisma.$queryRaw<Array<{ now: Date }>>`SELECT NOW() AS now`;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-gray-50 p-4 text-gray-900 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <p className="font-semibold">Traveler Preview</p>
-            <p className="text-sm text-gray-600">
+            <p className="font-semibold text-gray-950">Traveler Preview</p>
+            <p className="text-sm text-gray-700">
               {trip.isPublished ? "Currently published" : "Currently unpublished"}
             </p>
           </div>
-          <Link className="text-blue-600" href={`/trips/${trip.id}`}>
+          <Link className="font-medium text-blue-800" href={`/trips/${trip.id}`}>
             Exit Preview
           </Link>
         </div>
