@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { TravelerPolls } from "@/app/share/[token]/polls";
 import { InlineLinkedUpdates, LinkedUpdateBadge, TravelerUpdateProvider, TravelerUpdatesFeed, TripWideUpdateBadge } from "./traveler-update-awareness";
 import { resolveTripSummary } from "@/lib/trip-summary";
+import { TravelerMediaViewer } from "./traveler-media-viewer";
 
 type TravelerTrip = {
   id: number;
@@ -110,13 +110,7 @@ export function TravelerTripView({ trip, publicToken, readOnly, initialNow }: { 
         {trip.itineraryItems.length ? <div className="grid gap-4">{trip.itineraryItems.map((item) => { const linkedUpdates = itineraryUpdates(item); return <div className="border-l-4 border-blue-600 pl-4 text-gray-900" id={`itinerary-item-${item.id}`} key={item.id}><div className="flex items-center justify-between gap-3"><p className="font-semibold text-gray-900">{dateFormatter.format(item.date)} at {item.time}</p><LinkedUpdateBadge updates={linkedUpdates} /></div><h3 className="text-xl font-semibold text-gray-950">{item.title}</h3>{item.description && <p className="whitespace-pre-wrap">{item.description}</p>}<InlineLinkedUpdates updates={linkedUpdates} /></div>; })}</div> : <p className="text-gray-900">No itinerary items yet.</p>}
       </section>
 
-      <section className="bg-white border rounded-lg p-6 sm:p-8" id="documents"><h2 className="text-2xl font-bold text-gray-950 mb-4">Documents</h2>
-        {trip.documents.length ? <ul className="grid gap-2">{trip.documents.map((document) => <li key={document.id}><a className="font-medium text-blue-800" href={`${mediaBase}/documents/${document.id}`}>{document.name}</a></li>)}</ul> : <p className="text-gray-900">No documents.</p>}
-      </section>
-
-      <section className="bg-white border rounded-lg p-6 sm:p-8" id="photos"><h2 className="text-2xl font-bold text-gray-950 mb-4">Photos</h2>
-        {trip.photos.length ? <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{trip.photos.map((photo) => <Image alt={photo.name} className="w-full h-40 object-cover rounded" height={160} key={photo.id} src={`${mediaBase}/photos/${photo.id}`} unoptimized width={240} />)}</div> : <p className="text-gray-900">No photos.</p>}
-      </section>
+      <TravelerMediaViewer documents={trip.documents} mediaBase={mediaBase} photos={trip.photos} />
 
       <div id="polls"><TravelerPolls
           polls={trip.polls.map((poll) => ({ id: poll.id, question: poll.question, isClosed: poll.isClosed, totalVotes: poll._count.votes, options: poll.options.map((option) => ({ id: option.id, label: option.label, votes: option._count.votes })) }))}

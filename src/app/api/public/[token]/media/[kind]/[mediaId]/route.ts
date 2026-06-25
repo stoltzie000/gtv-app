@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string; kind: string; mediaId: string }> }
 ) {
   const { token, kind, mediaId: rawId } = await params;
@@ -16,11 +16,14 @@ export async function GET(
       : null;
   if (!media) return new Response("Not found", { status: 404 });
 
+  const download = new URL(request.url).searchParams.get("download") === "1";
+  const disposition = download ? "attachment" : "inline";
+
   return new Response(media.data, {
     headers: {
       "Content-Type": media.mimeType,
       "Content-Length": String(media.size),
-      "Content-Disposition": `${kind === "documents" ? "attachment" : "inline"}; filename="${media.name.replace(/["\\]/g, "_")}"`,
+      "Content-Disposition": `${disposition}; filename="${media.name.replace(/["\\]/g, "_")}"`,
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, no-store, max-age=0",
     },
